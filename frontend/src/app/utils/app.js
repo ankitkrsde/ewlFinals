@@ -4,50 +4,54 @@ const API_BASE =
     : "http://localhost:5000/api";
 
 export const api = {
-  async get(endpoint) {
+  async request(endpoint, options = {}) {
     const token = localStorage.getItem("token");
-    const response = await fetch(`${API_BASE}${endpoint}`, {
+    const config = {
       headers: {
-        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+        ...options.headers,
       },
-    });
-    return response.json();
+      ...options,
+    };
+
+    if (config.body && typeof config.body === "object") {
+      config.body = JSON.stringify(config.body);
+    }
+
+    const response = await fetch(`${API_BASE}${endpoint}`, config);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "API request failed");
+    }
+
+    return data;
   },
 
-  async post(endpoint, data) {
-    const token = localStorage.getItem("token");
-    const response = await fetch(`${API_BASE}${endpoint}`, {
+  get(endpoint) {
+    return this.request(endpoint);
+  },
+
+  post(endpoint, data) {
+    return this.request(endpoint, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token ? `Bearer ${token}` : "",
-      },
-      body: JSON.stringify(data),
+      body: data,
     });
-    return response.json();
   },
 
-  async put(endpoint, data) {
-    const token = localStorage.getItem("token");
-    const response = await fetch(`${API_BASE}${endpoint}`, {
+  put(endpoint, data) {
+    return this.request(endpoint, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token ? `Bearer ${token}` : "",
-      },
-      body: JSON.stringify(data),
+      body: data,
     });
-    return response.json();
   },
 
-  async delete(endpoint) {
-    const token = localStorage.getItem("token");
-    const response = await fetch(`${API_BASE}${endpoint}`, {
+  delete(endpoint) {
+    return this.request(endpoint, {
       method: "DELETE",
-      headers: {
-        Authorization: token ? `Bearer ${token}` : "",
-      },
     });
-    return response.json();
   },
 };
+
+export default api;
