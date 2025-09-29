@@ -2,9 +2,6 @@ import Image from "next/image";
 import Link from "next/link";
 
 // Images
-import bg1 from "../../../public/bg1.jpg";
-import bg2 from "../../../public/bg2.jpg";
-import bg3 from "../../../public/bg3.jpg";
 import bg4 from "../../../public/bg4.jpg";
 import d1 from "../../../public/d1.jpg";
 import d2 from "../../../public/d2.jpg";
@@ -16,7 +13,7 @@ import d7 from "../../../public/d7.jpg";
 
 import { IoIosSearch } from "react-icons/io";
 
-export default function Hero() {
+export default function Hero({ user }) {
   return (
     <>
       <main className="flex lg:flex-row flex-col items-center justify-center px-10 lg:px-36 relative ">
@@ -56,87 +53,97 @@ export default function Hero() {
             <input
               className="w-[20rem] sm:w-[25rem] md:w-[32rem] h-14 px-6 py-3 mx-4 text-lg rounded-full focus:outline-none shadow-lg"
               type="text"
-              placeholder="Where are you going?"
+              placeholder={
+                user
+                  ? "Where would you like to explore?"
+                  : "Where are you going?"
+              }
             />
           </div>
+
+          {/* Conditional welcome message for logged-in users */}
+          {user && (
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 mt-4 border border-white/20">
+              <p className="text-white font-poppins text-lg">
+                Welcome back, <span className="font-semibold">{user.name}</span>
+                !
+                {user.role === "guide"
+                  ? " Ready to host travelers?"
+                  : " Ready for your next adventure?"}
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* Image grid  */}
-
+        {/* Image grid - Keep your exact layout */}
         <div id="right-part" className="w-full lg:w-1/2 mt-8 hidden xl:block">
-          <div class="flex items-center justify-end gap-x-4 ">
-            <div class="grid grid-cols-1 place-items-end gap-y-3 lg:gap-y-4">
-              <div class="h-32 w-56 shadow-lg overflow-hidden rounded-lg lg:opacity-100 hover:scale-105 transition-all duration-500">
+          <div className="flex items-center justify-end gap-x-4 ">
+            <div className="grid grid-cols-1 place-items-end gap-y-3 lg:gap-y-4">
+              <div className="h-32 w-56 shadow-lg overflow-hidden rounded-lg lg:opacity-100 hover:scale-105 transition-all duration-500">
                 <Image
                   src={d1}
-                  alt="alt"
+                  alt="Local guide showing tourists around"
                   width={1000}
                   height={1000}
-                  class="h-full w-full object-cover object-center"
+                  className="h-full w-full object-cover object-center"
                 />
               </div>
-              <div class="h-52 w-36 shadow-lg overflow-hidden rounded-lg hover:scale-105 transition-all duration-500">
+              <div className="h-52 w-36 shadow-lg overflow-hidden rounded-lg hover:scale-105 transition-all duration-500">
                 <Image
                   src={d2}
-                  alt="alt"
+                  alt="Cultural experience with locals"
                   width={1000}
                   height={1000}
-                  class="h-full w-full object-cover
-                      object-center"
+                  className="h-full w-full object-cover object-center"
                 />
               </div>
             </div>
-            <div class="grid flex-shrink-0 grid-cols-1 gap-y-3 lg:gap-y-4">
-              <div class="h-52 w-36 shadow-lg overflow-hidden rounded-lg hover:scale-105 transition-all duration-500">
+            <div className="grid flex-shrink-0 grid-cols-1 gap-y-3 lg:gap-y-4">
+              <div className="h-52 w-36 shadow-lg overflow-hidden rounded-lg hover:scale-105 transition-all duration-500">
                 <Image
                   src={d3}
-                  alt="alt"
+                  alt="Traditional food tasting"
                   width={1000}
                   height={1000}
-                  class="h-full w-full
-                      object-cover object-center"
+                  className="h-full w-full object-cover object-center"
                 />
               </div>
-              <div class="h-36 w-36 shadow-lg overflow-hidden rounded-lg hover:scale-105 transition-all duration-500">
+              <div className="h-36 w-36 shadow-lg overflow-hidden rounded-lg hover:scale-105 transition-all duration-500">
                 <Image
                   src={d4}
-                  alt="alt"
+                  alt="Historical site exploration"
                   width={1000}
                   height={1000}
-                  class="h-full w-full
-                      object-cover object-center"
+                  className="h-full w-full object-cover object-center"
                 />
               </div>
-              <div class="h-52 w-36 shadow-lg overflow-hidden rounded-lg hover:scale-105 transition-all duration-500">
+              <div className="h-52 w-36 shadow-lg overflow-hidden rounded-lg hover:scale-105 transition-all duration-500">
                 <Image
                   src={d5}
-                  alt="alt"
+                  alt="Local market visit"
                   width={1000}
                   height={1000}
-                  class="h-full w-full
-                      object-cover object-center"
+                  className="h-full w-full object-cover object-center"
                 />
               </div>
             </div>
-            <div class="grid flex-shrink-0 grid-cols-1 gap-y-3 lg:gap-y-4">
-              <div class="h-52 w-36 shadow-lg overflow-hidden rounded-lg hover:scale-105 transition-all duration-500">
+            <div className="grid flex-shrink-0 grid-cols-1 gap-y-3 lg:gap-y-4">
+              <div className="h-52 w-36 shadow-lg overflow-hidden rounded-lg hover:scale-105 transition-all duration-500">
                 <Image
                   src={d6}
-                  alt="alt"
+                  alt="Adventure activity with guide"
                   width={1000}
                   height={1000}
-                  class="h-full w-full
-                      object-cover object-center"
+                  className="h-full w-full object-cover object-center"
                 />
               </div>
-              <div class="h-32 w-56 shadow-lg overflow-hidden rounded-lg hover:scale-105 transition-all duration-500">
+              <div className="h-32 w-56 shadow-lg overflow-hidden rounded-lg hover:scale-105 transition-all duration-500">
                 <Image
                   src={d7}
-                  alt="alt"
+                  alt="Group tour with local expert"
                   width={1000}
                   height={1000}
-                  class="h-full w-full object-cover
-                      object-center"
+                  className="h-full w-full object-cover object-center"
                 />
               </div>
             </div>
