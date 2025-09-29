@@ -1,13 +1,44 @@
+"use client";
 import Image from "next/image";
 import React from "react";
 import privacy from "../../../public/privacy.jpg";
 
 export default function Privacy() {
+  const handleEmailClick = (email) => {
+    window.location.href = `mailto:${email}`;
+  };
+
+  const handlePhoneClick = (phone) => {
+    window.location.href = `tel:${phone.replace(/-/g, "")}`;
+  };
+
+  const handleAddressClick = () => {
+    const address =
+      "1299 Pennsylvania Avenue, NW, 10th Floor, Washington, DC 20004, United States";
+    const mapsUrl = `https://maps.google.com/?q=${encodeURIComponent(address)}`;
+    window.open(mapsUrl, "_blank");
+  };
+
+  const handleCookieSettings = () => {
+    // In a real app, this would open cookie preferences modal
+    alert(
+      "Cookie settings would open here. You can manage your cookie preferences in your browser settings."
+    );
+  };
+
+  const handleDataRequest = (type) => {
+    const email = "privacy@explorewithlocals.com";
+    const subject = `Data ${type} Request - ExploreWithLocals`;
+    const body = `Hello ExploreWithLocals team,\n\nI would like to ${type.toLowerCase()} my personal data.\n\nPlease contact me to proceed with this request.\n\nBest regards,\n[Your Name]`;
+
+    window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  };
+
   return (
-    <div className="w-full flex flex-col">
+    <div className="w-full flex flex-col mb-24">
       <div className="h-[60vh] flex items-center justify-center bg-[url('/privacy.jpg')] bg-no-repeat bg-center bg-cover">
         <div className="flex flex-col gap-2 md:gap-4 items-center justify-center text-center">
-          <div className="flex items-center gap-0 md;gap-4 font-poppins text-lg text-gray-700 font-medium">
+          <div className="flex items-center gap-0 md:gap-4 font-poppins text-lg text-gray-700 font-medium">
             <span className="h-[2px] w-16 bg-purple-500"></span>
             <span className=" text-white md:text-gray-800 bg-none md:bg-gray-50 px-4 text-sm sm:text-lg md:text-xl text-center">
               Your Privacy, Our Priority
@@ -19,20 +50,13 @@ export default function Privacy() {
               Privacy Policy
             </h1>
           </div>
-
-          {/* <h3 className="text-xl md:text-2xl text-gray-50">
-  Discover the World with{" "}
-  <span className="text-yellow-400 hover:underline hover:underline-offset-2">
-    ExploreWithLocals
-  </span>
-</h3> */}
         </div>
       </div>
 
-      <div className="mt-16 px-10 lg:px-24">
-        <div className=" mt-4">
-          <p className=" text-gray-700 text-lg">
-            At ExploreWithLocals,we are committed to protecting your personal
+      <div className="mt-16 px-10 lg:px-48">
+        <div className="mt-4">
+          <p className="text-gray-700 text-lg">
+            At ExploreWithLocals, we are committed to protecting your personal
             information and respecting your privacy. This Privacy Policy
             explains how we collect, use, and safeguard your information when
             you visit our website or use our services. By accessing our website
@@ -42,7 +66,7 @@ export default function Privacy() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-24">
+      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-48">
         <h3 className="text-xl md:text-2xl font-bold text-gray-800 border-b-2 border-red-500 w-fit">
           Information We Collect
         </h3>
@@ -73,13 +97,20 @@ export default function Privacy() {
               We use cookies and similar technologies to enhance your experience
               on our website. Cookies help us remember your preferences and
               personalize your visit. You can manage your cookie preferences
-              through your browser settings.
+              through your browser settings or{" "}
+              <button
+                onClick={handleCookieSettings}
+                className="text-purple-500 hover:underline hover:underline-offset-2 cursor-pointer"
+              >
+                click here to manage cookies
+              </button>
+              .
             </span>
           </li>
         </ul>
       </div>
 
-      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-24">
+      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-48">
         <h3 className="text-xl md:text-2xl font-bold text-gray-800 border-b-2 border-red-500 w-fit">
           How We Use Your Information
         </h3>
@@ -119,7 +150,7 @@ export default function Privacy() {
         </ul>
       </div>
 
-      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-24">
+      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-48">
         <h3 className="text-xl md:text-2xl font-bold text-gray-800 border-b-2 border-red-500 w-fit">
           How We Share Your Information
         </h3>
@@ -157,7 +188,7 @@ export default function Privacy() {
         </ul>
       </div>
 
-      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-24">
+      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-48">
         <h3 className="text-xl md:text-2xl font-bold text-gray-800 border-b-2 border-red-500 w-fit">
           Data Security
         </h3>
@@ -170,7 +201,7 @@ export default function Privacy() {
         </p>
       </div>
 
-      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-24">
+      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-48">
         <h3 className="text-xl md:text-2xl font-bold text-gray-800 border-b-2 border-red-500 w-fit">
           Your Rights
         </h3>
@@ -181,15 +212,29 @@ export default function Privacy() {
           <li className="font-semibold text-lg text-gray-800">
             Access and Correction :{" "}
             <span className="font-normal text-base text-gray-700">
-              You can request access to the personal information we hold about
-              you and ask us to correct any inaccuracies.
+              You can{" "}
+              <button
+                onClick={() => handleDataRequest("Access")}
+                className="text-purple-500 hover:underline hover:underline-offset-2 cursor-pointer"
+              >
+                request access
+              </button>{" "}
+              to the personal information we hold about you and ask us to
+              correct any inaccuracies.
             </span>
           </li>
           <li className="font-semibold text-lg text-gray-800">
             Deletion :{" "}
             <span className="font-normal text-base text-gray-700">
-              You have the right to request the deletion of your personal
-              information, subject to certain legal obligations
+              You have the right to{" "}
+              <button
+                onClick={() => handleDataRequest("Delete")}
+                className="text-purple-500 hover:underline hover:underline-offset-2 cursor-pointer"
+              >
+                request the deletion
+              </button>{" "}
+              of your personal information, subject to certain legal
+              obligations.
             </span>
           </li>
           <li className="font-semibold text-lg text-gray-800">
@@ -210,14 +255,17 @@ export default function Privacy() {
         </ul>
         <p className="text-gray-700">
           To exercise any of these rights, please contact us at{" "}
-          <span className=" font-normal text-base text-purple-500 cursor-pointer hover:underline hover:underline-offset-2">
-            privacy@yourcompany.com
-          </span>
+          <button
+            onClick={() => handleEmailClick("privacy@explorewithlocals.com")}
+            className="font-normal text-base text-purple-500 cursor-pointer hover:underline hover:underline-offset-2"
+          >
+            privacy@explorewithlocals.com
+          </button>
           .
         </p>
       </div>
 
-      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-24">
+      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-48">
         <h3 className="text-xl md:text-2xl font-bold text-gray-800 border-b-2 border-red-500 w-fit">
           International Transfers
         </h3>
@@ -229,7 +277,7 @@ export default function Privacy() {
         </p>
       </div>
 
-      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-24">
+      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-48">
         <h3 className="text-xl md:text-2xl font-bold text-gray-800 border-b-2 border-red-500 w-fit">
           Third-Party Links
         </h3>
@@ -241,7 +289,7 @@ export default function Privacy() {
         </p>
       </div>
 
-      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-24">
+      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-48">
         <h3 className="text-xl md:text-2xl font-bold text-gray-800 border-b-2 border-red-500 w-fit">
           Changes to This Policy
         </h3>
@@ -253,7 +301,7 @@ export default function Privacy() {
         </p>
       </div>
 
-      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-24">
+      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-48">
         <h3 className="text-xl md:text-2xl font-bold text-gray-800 border-b-2 border-red-500 w-fit">
           Contact Us
         </h3>
@@ -264,22 +312,31 @@ export default function Privacy() {
         <ul className="flex flex-col gap-2 mt-4">
           <li className="font-semibold text-lg text-gray-800">
             Email :{" "}
-            <span className=" font-normal text-base text-purple-500 cursor-pointer hover:underline hover:underline-offset-2">
+            <button
+              onClick={() => handleEmailClick("contact@explorewithlocals.com")}
+              className="font-normal text-base text-purple-500 cursor-pointer hover:underline hover:underline-offset-2"
+            >
               contact@explorewithlocals.com
-            </span>
+            </button>
           </li>
           <li className="font-semibold text-lg text-gray-800">
             Phone :{" "}
-            <span className=" font-normal text-base text-purple-500 cursor-pointer hover:underline hover:underline-offset-2">
+            <button
+              onClick={() => handlePhoneClick("+123-456-7890")}
+              className="font-normal text-base text-purple-500 cursor-pointer hover:underline hover:underline-offset-2"
+            >
               +123-456-7890
-            </span>
+            </button>
           </li>
           <li className="font-semibold text-lg text-gray-800">
             Address :{" "}
-            <span className=" font-normal text-base text-purple-500 cursor-pointer hover:underline hover:underline-offset-2">
+            <button
+              onClick={handleAddressClick}
+              className="font-normal text-base text-purple-500 cursor-pointer hover:underline hover:underline-offset-2 text-left"
+            >
               1299 Pennsylvania Avenue, NW, 10th Floor, Washington, DC 20004,
               United States
-            </span>
+            </button>
           </li>
         </ul>
       </div>

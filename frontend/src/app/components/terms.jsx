@@ -1,41 +1,91 @@
+"use client";
 import Image from "next/image";
 import React from "react";
 import terms from "../../../public/terms.jpg";
 import Link from "next/link";
 
 export default function Terms() {
+  const handleEmailClick = () => {
+    window.location.href = "mailto:contact@explorewithlocals.com";
+  };
+
+  const handlePhoneClick = () => {
+    window.location.href = "tel:+123-456-7890";
+  };
+
+  const handleAddressClick = () => {
+    // Open Google Maps with the address
+    const address =
+      "1299 Pennsylvania Avenue, NW, 10th Floor, Washington, DC 20004, United States";
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+    window.open(mapsUrl, "_blank");
+  };
+
+  const scrollToSection = (sectionId) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  // Quick navigation menu for better user experience
+  const sections = [
+    { id: "booking", title: "Booking & Payments" },
+    { id: "cancellations", title: "Cancellations & Refunds" },
+    { id: "changes", title: "Changes to Booking" },
+    { id: "requirements", title: "Travel Requirements" },
+    { id: "liability", title: "Liability" },
+    { id: "conduct", title: "Conduct & Behavior" },
+    { id: "property", title: "Intellectual Property" },
+    { id: "contact", title: "Contact Information" },
+  ];
+
   return (
-    <div className="w-full flex flex-col relative">
-      <div className="h-[60vh] flex items-center justify-center bg-[url('/terms.jpg')] bg-no-repeat bg-center bg-cover">
-        <div className="flex flex-col gap-2 md:gap-4 items-center justify-center text-center">
+    <div className="w-full flex flex-col relative mb-24">
+      {/* Hero Section */}
+      <div className="h-[60vh] flex items-center justify-center bg-[url('/terms.jpg')] bg-no-repeat bg-center bg-cover relative">
+        {/* Overlay for better text readability */}
+        <div className="absolute inset-0 bg-black/30"></div>
+        <div className="flex flex-col gap-2 md:gap-4 items-center justify-center text-center relative z-10">
           <div className="flex items-center gap-0 md:gap-4 font-poppins text-lg text-gray-700 font-medium">
             <span className="h-[2px] w-16 bg-purple-500"></span>
-            <span className=" text-white md:text-gray-800 bg-none md:bg-gray-50 px-4 text-sm sm:text-lg md:text-xl text-center">
+            <span className="text-white md:text-gray-800 bg-none md:bg-gray-50 px-4 text-sm sm:text-lg md:text-xl text-center">
               Guidelines for a Better Experience
             </span>
             <span className="h-[2px] w-16 bg-purple-500"></span>
           </div>
           <div>
             <h1 className="font-poppins text-4xl sm:text-5xl md:text-7xl font-semibold text-gray-50 leading-tight text-center">
-              Term & Conditions
+              Terms & Conditions
             </h1>
           </div>
-
-          {/* <h3 className="text-xl md:text-2xl text-gray-50">
-  Discover the World with{" "}
-  <span className="text-yellow-400 hover:underline hover:underline-offset-2">
-    ExploreWithLocals
-  </span>
-</h3> */}
         </div>
       </div>
 
-      <div className="mt-16 px-10 lg:px-24">
-        <div className=" mt-4">
+      {/* Quick Navigation */}
+      <div className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10 hidden md:block">
+        <div className="px-10 lg:px-48 py-4">
+          <div className="flex flex-wrap gap-4 justify-center">
+            {sections.map((section, index) => (
+              <button
+                key={section.id}
+                onClick={() => scrollToSection(section.id)}
+                className="text-sm text-gray-600 hover:text-red-600 hover:underline transition-colors"
+              >
+                {section.title}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Welcome Section */}
+      <div className="mt-16 px-10 lg:px-48" id="welcome">
+        <div className="mt-4">
           <h3 className="text-2xl md:text-3xl font-bold text-red-500 w-fit pb-4">
             Welcome to Explore With Locals
           </h3>
-          <p className=" text-gray-700 text-lg">
+          <p className="text-gray-700 text-lg">
             These Terms and Conditions (&quot;Terms&quot;) govern your use of
             our website and services. By accessing our website or booking a tour
             with Explore With Locals, you agree to comply with these Terms.
@@ -44,7 +94,8 @@ export default function Terms() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-24">
+      {/* Section 1: Booking and Payments */}
+      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-48" id="booking">
         <h3 className="text-xl md:text-2xl font-bold text-gray-800 ">
           1.{" "}
           <span className="border-b-2 border-red-500 w-fit">
@@ -77,17 +128,21 @@ export default function Terms() {
           <ul>
             <li className="font-semibold text-lg text-gray-800">1.3 Pricing</li>
             <span className="font-normal text-base text-gray-700">
-              All prices are quoted in [Currency] and are subject to change
-              without notice. Once your booking is confirmed, the price is
-              guaranteed unless there are significant changes in taxes, fees, or
-              exchange rates. In such cases, we will notify you of any price
+              All prices are quoted in Indian Rupees (INR) and are subject to
+              change without notice. Once your booking is confirmed, the price
+              is guaranteed unless there are significant changes in taxes, fees,
+              or exchange rates. In such cases, we will notify you of any price
               adjustments.
             </span>
           </ul>
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-24">
+      {/* Section 2: Cancellations and Refunds */}
+      <div
+        className="flex flex-col gap-4 mt-16 px-10 lg:px-48"
+        id="cancellations"
+      >
         <h3 className="text-xl md:text-2xl font-bold text-gray-800 ">
           2.{" "}
           <span className="border-b-2 border-red-500 w-fit">
@@ -134,7 +189,8 @@ export default function Terms() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-24">
+      {/* Section 3: Changes to Your Booking */}
+      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-48" id="changes">
         <h3 className="text-xl md:text-2xl font-bold text-gray-800 ">
           3.{" "}
           <span className="border-b-2 border-red-500 w-fit">
@@ -169,7 +225,11 @@ export default function Terms() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-24">
+      {/* Section 4: Travel Requirements and Responsibilities */}
+      <div
+        className="flex flex-col gap-4 mt-16 px-10 lg:px-48"
+        id="requirements"
+      >
         <h3 className="text-xl md:text-2xl font-bold text-gray-800 ">
           4.{" "}
           <span className="border-b-2 border-red-500 w-fit">
@@ -214,7 +274,8 @@ export default function Terms() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-24">
+      {/* Section 5: Limitation of Liability */}
+      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-48" id="liability">
         <h3 className="text-xl md:text-2xl font-bold text-gray-800 ">
           5.{" "}
           <span className="border-b-2 border-red-500 w-fit">
@@ -258,7 +319,8 @@ export default function Terms() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-24">
+      {/* Section 6: Conduct and Behavior */}
+      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-48" id="conduct">
         <h3 className="text-xl md:text-2xl font-bold text-gray-800 ">
           6.{" "}
           <span className="border-b-2 border-red-500 w-fit">
@@ -282,7 +344,7 @@ export default function Terms() {
             </li>
             <span className="font-normal text-base text-gray-700">
               You are required to comply with all local laws and regulations
-              while on tour. [Your Company Name] is not responsible for any
+              while on tour. Explore With Locals is not responsible for any
               penalties, fines, or legal issues arising from your failure to
               comply with local laws.
             </span>
@@ -290,7 +352,8 @@ export default function Terms() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-24">
+      {/* Section 7: Intellectual Property */}
+      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-48" id="property">
         <h3 className="text-xl md:text-2xl font-bold text-gray-800 ">
           7.{" "}
           <span className="border-b-2 border-red-500 w-fit">
@@ -304,7 +367,7 @@ export default function Terms() {
             </li>
             <span className="font-normal text-base text-gray-700">
               All content on our website, including text, images, and logos, is
-              the property of [Your Company Name] and is protected by copyright
+              the property of Explore With Locals and is protected by copyright
               and other intellectual property laws. You may not reproduce,
               distribute, or use any content without our express written
               permission.
@@ -323,7 +386,8 @@ export default function Terms() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-24">
+      {/* Section 8: Privacy Policy */}
+      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-48">
         <div className="flex flex-col gap-4">
           <h3 className="text-xl md:text-2xl font-bold text-gray-800 ">
             8.{" "}
@@ -331,7 +395,7 @@ export default function Terms() {
               Privacy Policy
             </span>
           </h3>
-          <p className=" text-gray-700 text-lg">
+          <p className="text-gray-700 text-lg">
             Your use of our website and services is also governed by our{" "}
             <Link
               href="/privacy"
@@ -345,7 +409,8 @@ export default function Terms() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-24">
+      {/* Section 9: Governing Law */}
+      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-48">
         <div className="flex flex-col gap-4">
           <h3 className="text-xl md:text-2xl font-bold text-gray-800 ">
             9.{" "}
@@ -353,16 +418,17 @@ export default function Terms() {
               Governing Law
             </span>
           </h3>
-          <p className=" text-gray-700 text-lg">
+          <p className="text-gray-700 text-lg">
             These Terms are governed by and construed in accordance with the
-            laws of USA. Any disputes arising out of or in connection with these
-            Terms shall be subject to the exclusive jurisdiction of the courts
-            of USA.
+            laws of India. Any disputes arising out of or in connection with
+            these Terms shall be subject to the exclusive jurisdiction of the
+            courts of India.
           </p>
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-24">
+      {/* Section 10: Changes to These Terms */}
+      <div className="flex flex-col gap-4 mt-16 px-10 lg:px-48">
         <div className="flex flex-col gap-4">
           <h3 className="text-xl md:text-2xl font-bold text-gray-800 ">
             10.{" "}
@@ -370,7 +436,7 @@ export default function Terms() {
               Changes to These Terms
             </span>
           </h3>
-          <p className=" text-gray-700 text-lg">
+          <p className="text-gray-700 text-lg">
             We reserve the right to update or modify these Terms at any time.
             Any changes will be posted on our website with the updated effective
             date. By continuing to use our services after any changes are made,
@@ -379,7 +445,8 @@ export default function Terms() {
         </div>
       </div>
 
-      <div className="flex flex-col mt-16 px-10 lg:px-24">
+      {/* Section 11: Contact Information */}
+      <div className="flex flex-col mt-16 px-10 lg:px-48" id="contact">
         <div className="flex flex-col gap-4">
           <h3 className="text-xl md:text-2xl font-bold text-gray-800 ">
             11.{" "}
@@ -387,7 +454,7 @@ export default function Terms() {
               Contact Information
             </span>
           </h3>
-          <p className=" text-gray-700 text-lg">
+          <p className="text-gray-700 text-lg">
             If you have any questions or concerns about these Terms, please
             contact us at:
           </p>
@@ -396,19 +463,28 @@ export default function Terms() {
           <ul className="flex flex-col gap-2 mt-4">
             <li className="font-semibold text-lg text-gray-800">
               Email :{" "}
-              <span className=" font-normal text-base text-purple-500 cursor-pointer hover:underline hover:underline-offset-2">
+              <span
+                className="font-normal text-base text-purple-500 cursor-pointer hover:underline hover:underline-offset-2"
+                onClick={handleEmailClick}
+              >
                 contact@explorewithlocals.com
               </span>
             </li>
             <li className="font-semibold text-lg text-gray-800">
               Phone :{" "}
-              <span className=" font-normal text-base text-purple-500 cursor-pointer hover:underline hover:underline-offset-2">
+              <span
+                className="font-normal text-base text-purple-500 cursor-pointer hover:underline hover:underline-offset-2"
+                onClick={handlePhoneClick}
+              >
                 +123-456-7890
               </span>
             </li>
             <li className="font-semibold text-lg text-gray-800">
               Address :{" "}
-              <span className=" font-normal text-base text-purple-500 cursor-pointer hover:underline hover:underline-offset-2">
+              <span
+                className="font-normal text-base text-purple-500 cursor-pointer hover:underline hover:underline-offset-2"
+                onClick={handleAddressClick}
+              >
                 1299 Pennsylvania Avenue, NW, 10th Floor, Washington, DC 20004,
                 United States
               </span>

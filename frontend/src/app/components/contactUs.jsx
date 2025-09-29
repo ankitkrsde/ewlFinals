@@ -1,17 +1,85 @@
-import React from "react";
+"use client";
+import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
 export default function ContactUs() {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // In a real application, you would send this to your backend API
+      const response = await fetch("http://localhost:5000/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        alert("Thank you for your message! We will get back to you soon.");
+        // Reset form
+        setFormData({
+          name: "",
+          email: "",
+          subject: "",
+          message: "",
+        });
+      } else {
+        alert("There was an error sending your message. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+      alert("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEmailClick = () => {
+    window.location.href = "mailto:contact@explorewithlocals.com";
+  };
+
+  const handlePhoneClick = () => {
+    window.location.href = "tel:+123-456-7890";
+  };
+
+  const handleSocialClick = (platform) => {
+    const socialLinks = {
+      facebook: "https://www.facebook.com/explorewithlocals",
+      instagram: "https://www.instagram.com/explorewithlocals",
+      twitter: "https://www.twitter.com/explorewithlocals",
+    };
+    window.open(socialLinks[platform], "_blank");
+  };
+
   return (
     <>
-      <div className="w-full flex flex-col">
+      <div className="w-full flex flex-col mb-24">
         <div className="h-[60vh] flex items-center justify-center bg-[url('/contactus.jpg')] bg-no-repeat bg-center bg-cover">
           <div className="flex flex-col gap-2 md:gap-4 items-center justify-center text-center">
             <div className="flex items-center gap-0 md:gap-4 font-poppins text-lg text-gray-700 font-medium">
               <span className="h-[2px] w-16 bg-purple-500"></span>
               <span className=" text-white md:text-gray-800 bg-none md:bg-gray-50 px-4 text-sm sm:text-lg md:text-xl text-center">
-                We’re Here to Help You Explore the World
+                We're Here to Help You Explore the World
               </span>
               <span className="h-[2px] w-16 bg-purple-500"></span>
             </div>
@@ -20,23 +88,16 @@ export default function ContactUs() {
                 Contact Us
               </h1>
             </div>
-
-            {/* <h3 className="text-xl md:text-2xl text-gray-50">
-            Discover the World with{" "}
-            <span className="text-yellow-400 hover:underline hover:underline-offset-2">
-              ExploreWithLocals
-            </span>
-          </h3> */}
           </div>
         </div>
 
-        <div className="mt-16 px-10 lg:px-24">
-          <div className=" mt-4">
-            <p className=" text-gray-700 text-lg">
+        <div className="mt-16 px-10 lg:px-48">
+          <div className="mt-4">
+            <p className="text-gray-700 text-lg">
               At ExploreWithLocals, we are dedicated to making your travel
               experience as seamless and enjoyable as possible. Whether you have
               a question about our tours, need assistance with your booking, or
-              just want to say hello, we’re here for you!
+              just want to say hello, we're here for you!
             </p>
           </div>
           <div className="flex flex-col gap-4 mt-16">
@@ -44,29 +105,35 @@ export default function ContactUs() {
               Get in Touch
             </h3>
             <p className="text-gray-700">
-              We’d love to hear from you! Reach out to us using any of the
+              We'd love to hear from you! Reach out to us using any of the
               methods below, and a member of our friendly team will get back to
               you as soon as possible.
             </p>
             <ul className="flex flex-col gap-4 mt-4">
               <li className="font-semibold text-lg text-gray-800">
                 Email :{" "}
-                <span className=" font-normal text-base text-purple-500 cursor-pointer hover:underline hover:underline-offset-2">
+                <span
+                  className="font-normal text-base text-purple-500 cursor-pointer hover:underline hover:underline-offset-2"
+                  onClick={handleEmailClick}
+                >
                   contact@explorewithlocals.com
                 </span>
                 <span className="block font-normal text-base text-gray-700">
                   For general inquiries, bookings, or support, drop us an email,
-                  and we’ll respond within 24 hours.
+                  and we'll respond within 24 hours.
                 </span>
               </li>
               <li className="font-semibold text-lg text-gray-800">
                 Phone :{" "}
-                <span className=" font-normal text-base text-purple-500 cursor-pointer hover:underline hover:underline-offset-2">
+                <span
+                  className="font-normal text-base text-purple-500 cursor-pointer hover:underline hover:underline-offset-2"
+                  onClick={handlePhoneClick}
+                >
                   +123-456-7890
                 </span>
                 <span className="block font-normal text-base text-gray-700">
                   Prefer to talk to someone directly? Give us a call during our
-                  business hours, and we’ll be happy to assist you.
+                  business hours, and we'll be happy to assist you.
                 </span>
               </li>
               <li className="font-semibold text-lg text-gray-800">
@@ -87,34 +154,42 @@ export default function ContactUs() {
                   Connect with us on social media! Follow us for the latest
                   updates, travel tips, and inspiration.
                 </span>
-                <span className=" font-normal text-base text-purple-500 cursor-pointer hover:underline hover:underline-offset-2">
-                  <Link href="https://www.facebook.com">Facebook</Link>
+                <span
+                  className="font-normal text-base text-purple-500 cursor-pointer hover:underline hover:underline-offset-2"
+                  onClick={() => handleSocialClick("facebook")}
+                >
+                  Facebook
                 </span>
                 <span className="font-normal text-base px-2">|</span>
-                <span className=" font-normal text-base text-purple-500 cursor-pointer hover:underline hover:underline-offset-2">
-                  <Link href="https://www.instagram.com">Instagram</Link>
+                <span
+                  className="font-normal text-base text-purple-500 cursor-pointer hover:underline hover:underline-offset-2"
+                  onClick={() => handleSocialClick("instagram")}
+                >
+                  Instagram
                 </span>
                 <span className="font-normal text-base px-2">|</span>
-                <span className=" font-normal text-base text-purple-500 cursor-pointer hover:underline hover:underline-offset-2">
-                  <Link href="https://www.twitter.com">Twitter</Link>
+                <span
+                  className="font-normal text-base text-purple-500 cursor-pointer hover:underline hover:underline-offset-2"
+                  onClick={() => handleSocialClick("twitter")}
+                >
+                  Twitter
                 </span>
               </li>
             </ul>
           </div>
-          <div className="flex flex-col md:flex-row  gap-8 mt-16">
+          <div className="flex flex-col md:flex-row gap-8 mt-16">
             <div className="flex flex-col gap-4 w-full md:w-1/2">
               <h3 className="text-xl md:text-2xl font-bold text-gray-800 border-b-2 border-red-500 w-fit">
                 Visit Us
               </h3>
               <p className="text-gray-700">
-                If you’re in the area, feel free to drop by our office. We’d
+                If you're in the area, feel free to drop by our office. We'd
                 love to meet you in person and help you plan your next
                 adventure.
               </p>
               <ul className="flex flex-col gap-2 mt-4">
                 <li className="block font-semibold text-lg text-gray-800">
                   Address
-                  <span className="block font-normal text-base text-gray-700"></span>
                 </li>
                 <li>
                   <p className="block font-normal text-base text-gray-700">
@@ -140,10 +215,11 @@ export default function ContactUs() {
                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d24842.445152333632!2d-77.05195490325254!3d38.89412537153159!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89b7b79741a422c5%3A0xe6c57abb35fe7bc0!2s1299%20Pennsylvania%20Avenue%20NW%20%2310th%2C%20Washington%2C%20DC%2020004%2C%20USA!5e0!3m2!1sen!2sin!4v1724742054546!5m2!1sen!2sin"
                 width="600"
                 height="350"
-                allowfullscreen=""
+                allowFullScreen=""
                 loading="lazy"
-                referrerpolicy="no-referrer-when-downgrade"
-                className="rounded-sm border-2 border-gray-100 shadow-lg"
+                referrerPolicy="no-referrer-when-downgrade"
+                className="rounded-sm border-2 border-gray-100 shadow-lg w-full"
+                title="ExploreWithLocals Office Location"
               ></iframe>
             </div>
           </div>
@@ -154,10 +230,13 @@ export default function ContactUs() {
             <p className="text-gray-700">
               We value your feedback! Your insights help us improve our services
               and provide the best possible experiences for our travelers. If
-              you’ve traveled with us, we’d love to hear about your experience.
+              you've traveled with us, we'd love to hear about your experience.
               Please send your feedback to{" "}
-              <span className="text-purple-500 hover:underline hover:underline-offset-2 cursor-pointer">
-                feedback@yourcompany.com
+              <span
+                className="text-purple-500 hover:underline hover:underline-offset-2 cursor-pointer"
+                onClick={handleEmailClick}
+              >
+                feedback@explorewithlocals.com
               </span>{" "}
               or share your story on our social media channels.
             </p>
@@ -175,7 +254,7 @@ export default function ContactUs() {
                 FAQ
               </Link>{" "}
               page for answers to some of the most common inquiries. If you
-              don’t find what you’re looking for, don’t hesitate to reach out!
+              don't find what you're looking for, don't hesitate to reach out!
             </p>
           </div>
           <div className="flex flex-col gap-4 mt-16 border-2 border-gray-300 rounded-md p-6">
@@ -188,36 +267,57 @@ export default function ContactUs() {
               </h2>
             </div>
             <div>
-              <form action="post" className="flex flex-col gap-2 w-full">
+              <form
+                onSubmit={handleSubmit}
+                className="flex flex-col gap-4 w-full"
+              >
                 <input
                   type="text"
+                  name="name"
                   placeholder="Your Name"
-                  className="px-4 py-3 focus:outline-purple-300 shadow-md"
+                  className="px-4 py-3 focus:outline-purple-300 shadow-md rounded border border-gray-300"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
                 />
                 <input
-                  type="text"
+                  type="email"
+                  name="email"
                   placeholder="Email"
-                  className="px-4 py-3 focus:outline-purple-300 shadow-md"
+                  className="px-4 py-3 focus:outline-purple-300 shadow-md rounded border border-gray-300"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
                 />
                 <input
                   type="text"
+                  name="subject"
                   placeholder="Subject"
-                  className="px-4 py-3 focus:outline-purple-300 shadow-md"
+                  className="px-4 py-3 focus:outline-purple-300 shadow-md rounded border border-gray-300"
+                  value={formData.subject}
+                  onChange={handleInputChange}
+                  required
                 />
                 <textarea
-                  name=""
-                  id=""
+                  name="message"
                   cols="30"
                   rows="10"
                   placeholder="Your Message Here"
-                  className="px-4 py-3 focus:outline-purple-300"
+                  className="px-4 py-3 focus:outline-purple-300 rounded border border-gray-300"
+                  value={formData.message}
+                  onChange={handleInputChange}
+                  required
                 ></textarea>
+                <div className="mt-6 flex items-center justify-center">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="bg-red-500 text-white w-fit text-center py-2 px-6 hover:bg-red-600 hover:shadow-purple-300 hover:shadow-md rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? "Sending..." : "Submit"}
+                  </button>
+                </div>
               </form>
-              <div className="mt-6 flex items-center justify-center">
-                <button className="bg-red-500 text-white w-fit text-center py-2 px-6 hover:bg-red-600 hover:shadow-purple-300 hover:shadow-md">
-                  Submit
-                </button>
-              </div>
             </div>
           </div>
         </div>
