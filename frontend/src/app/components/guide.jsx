@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import guide1 from "../../../public/guide1.jpg";
 import { PiHandTapLight } from "react-icons/pi";
-import { useAuth } from "./authProvider";
+import { useAuth } from "./AuthProvider";
 
 export default function Guide({ user }) {
   const [showForm, setShowForm] = useState(false);
