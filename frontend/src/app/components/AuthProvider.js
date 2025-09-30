@@ -1,8 +1,8 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from "react";
 
-// Create the context
-const AuthContext = createContext();
+// Create the context with a default value
+const AuthContext = createContext(undefined);
 
 // Custom hook to use the auth context
 export function useAuth() {
@@ -18,21 +18,24 @@ export default function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in on component mount
     const checkAuth = () => {
       try {
-        if (typeof window !== "undefined") {
-          const token = localStorage.getItem("token");
-          const userData = localStorage.getItem("user");
+        // Safely check for window and localStorage
+        if (typeof window === "undefined" || !window.localStorage) {
+          setLoading(false);
+          return;
+        }
 
-          if (token && userData) {
-            setUser(JSON.parse(userData));
-          }
+        const token = localStorage.getItem("token");
+        const userData = localStorage.getItem("user");
+
+        if (token && userData) {
+          setUser(JSON.parse(userData));
         }
       } catch (error) {
         console.error("Error checking authentication:", error);
         // Clear invalid data
-        if (typeof window !== "undefined") {
+        if (typeof window !== "undefined" && window.localStorage) {
           localStorage.removeItem("token");
           localStorage.removeItem("user");
         }
@@ -45,7 +48,7 @@ export default function AuthProvider({ children }) {
   }, []);
 
   const login = (token, userData) => {
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && window.localStorage) {
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(userData));
     }
@@ -53,12 +56,15 @@ export default function AuthProvider({ children }) {
   };
 
   const logout = () => {
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && window.localStorage) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
     }
     setUser(null);
-    window.location.href = "/";
+    // Use router instead of direct window.location for better SPA experience
+    if (typeof window !== "undefined") {
+      window.location.href = "/";
+    }
   };
 
   const value = {
