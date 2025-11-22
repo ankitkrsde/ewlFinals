@@ -1,12 +1,6 @@
 const mongoose = require("mongoose");
 
 const reviewSchema = new mongoose.Schema({
-  bookingId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Booking",
-    required: true,
-    unique: true,
-  },
   touristId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
@@ -15,6 +9,11 @@ const reviewSchema = new mongoose.Schema({
   guideId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
+    required: true,
+  },
+  bookingId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Booking",
     required: true,
   },
   rating: {
@@ -42,12 +41,12 @@ const reviewSchema = new mongoose.Schema({
   },
   comment: {
     type: String,
-    maxlength: [1000, "Comment cannot be more than 1000 characters"],
+    maxlength: 1000,
   },
   photos: [String],
   isApproved: {
     type: Boolean,
-    default: false,
+    default: true,
   },
   response: {
     comment: String,
@@ -63,15 +62,9 @@ const reviewSchema = new mongoose.Schema({
   },
 });
 
-// Indexes
+// Index for better query performance
 reviewSchema.index({ guideId: 1, createdAt: -1 });
 reviewSchema.index({ touristId: 1 });
 reviewSchema.index({ bookingId: 1 }, { unique: true });
-
-// Update updatedAt field before saving
-reviewSchema.pre("save", function (next) {
-  this.updatedAt = Date.now();
-  next();
-});
 
 module.exports = mongoose.model("Review", reviewSchema);

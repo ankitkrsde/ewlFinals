@@ -6,6 +6,13 @@ export default function GuideBookingsPage() {
   const [bookings, setBookings] = useState([]);
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [bookingStatus, setBookingStatus] = useState({
+    show: false,
+    message: "",
+    type: "",
+  });
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -37,9 +44,29 @@ export default function GuideBookingsPage() {
     }
   };
 
-  const updateBookingStatus = async (bookingId, status) => {
+  const showBookingStatus = (message, type = "success") => {
+    setBookingStatus({ show: true, message, type });
+
+    setTimeout(() => {
+      setBookingStatus({ show: false, message: "", type: "" });
+    }, 4000);
+  };
+
+  // Fixed updateBookingStatus function
+  const updateBookingStatus = async (bookingId, newStatus) => {
     try {
+      console.log("🔄 Attempting to update booking status:", {
+        bookingId,
+        newStatus,
+      });
+
       const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("❌ No token found");
+        showBookingStatus("Please login again", "error");
+        return;
+      }
+
       const response = await fetch(
         `http://localhost:5000/api/bookings/${bookingId}/status`,
         {
@@ -48,23 +75,49 @@ export default function GuideBookingsPage() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ status }),
+          body: JSON.stringify({ status: newStatus }),
         }
       );
 
-      const data = await response.json();
+      console.log("📊 Response status:", response.status);
 
-      if (data.success) {
-        // Update local state
-        setBookings(
-          bookings.map((booking) =>
-            booking._id === bookingId ? data.data : booking
-          )
+      // Check if response is OK before parsing JSON
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("❌ Server error response:", errorText);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("📦 Full response:", result);
+
+      if (result.success) {
+        console.log("✅ Status updated successfully");
+        fetchBookings(token);
+        showBookingStatus(
+          `Booking marked as ${newStatus} successfully!`,
+          "success"
+        );
+      } else {
+        console.error("❌ Update failed:", result.message);
+        showBookingStatus(
+          `Failed to update status: ${result.message}`,
+          "error"
         );
       }
     } catch (error) {
-      alert("Error updating booking status");
+      console.error("❌ Network error:", error);
+      showBookingStatus(
+        "Error updating booking status. Please try again.",
+        "error"
+      );
     }
+  };
+
+  // Modern confirmation function
+  const handleStatusUpdate = (bookingId, newStatus, actionName) => {
+    setPendingAction({ bookingId, newStatus, actionName });
+    setShowConfirmation(true);
   };
 
   const filteredBookings = bookings.filter((booking) => {
@@ -102,6 +155,84 @@ export default function GuideBookingsPage() {
           Booking Requests
         </h1>
 
+        {/* Modern Confirmation Modal */}
+        {showConfirmation && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-md w-full p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                  <span className="text-yellow-600 text-lg">⚠️</span>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Confirm Action
+                </h3>
+              </div>
+
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to {pendingAction?.actionName} this
+                booking?
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    if (pendingAction) {
+                      updateBookingStatus(
+                        pendingAction.bookingId,
+                        pendingAction.newStatus
+                      );
+                    }
+                    setShowConfirmation(false);
+                    setPendingAction(null);
+                  }}
+                  className="flex-1 bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                >
+                  Yes, Continue
+                </button>
+                <button
+                  onClick={() => {
+                    setShowConfirmation(false);
+                    setPendingAction(null);
+                  }}
+                  className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Booking Status Message */}
+        {bookingStatus.show && (
+          <div
+            className={`w-full max-w-4xl mx-auto mb-6 p-4 rounded-lg border ${
+              bookingStatus.type === "success"
+                ? "bg-green-50 border-green-200 text-green-800"
+                : "bg-red-50 border-red-200 text-red-800"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                  bookingStatus.type === "success"
+                    ? "bg-green-500"
+                    : "bg-red-500"
+                } text-white text-sm font-bold`}
+              >
+                {bookingStatus.type === "success" ? "✓" : "!"}
+              </div>
+              <div>
+                <p className="font-semibold">
+                  {bookingStatus.type === "success" ? "Success!" : "Error"}
+                </p>
+                <p className="text-sm">{bookingStatus.message}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Rest of your existing code remains the same */}
         {/* Filter Tabs */}
         <div className="bg-white rounded-lg shadow mb-6">
           <div className="border-b">
@@ -143,11 +274,15 @@ export default function GuideBookingsPage() {
                       {new Date(booking.date).toLocaleDateString()} at{" "}
                       {booking.startTime}
                     </p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Booking ID: {booking._id.slice(-8)}
+                    </p>
                   </div>
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}
                   >
-                    {booking.status}
+                    {booking.status.charAt(0).toUpperCase() +
+                      booking.status.slice(1)}
                   </span>
                 </div>
 
@@ -175,7 +310,9 @@ export default function GuideBookingsPage() {
                 {booking.specialRequests && (
                   <div className="mb-4">
                     <span className="text-gray-500">Special Requests:</span>
-                    <p className="mt-1">{booking.specialRequests}</p>
+                    <p className="mt-1 text-gray-700 bg-gray-50 p-2 rounded">
+                      {booking.specialRequests}
+                    </p>
                   </div>
                 )}
 
@@ -185,39 +322,72 @@ export default function GuideBookingsPage() {
                     {new Date(booking.createdAt).toLocaleDateString()}
                   </span>
 
-                  <div className="space-x-2">
+                  <div className="flex flex-wrap gap-2">
                     {booking.status === "pending" && (
                       <>
                         <button
                           onClick={() =>
-                            updateBookingStatus(booking._id, "confirmed")
+                            handleStatusUpdate(
+                              booking._id,
+                              "confirmed",
+                              "accept"
+                            )
                           }
-                          className="bg-green-500 text-white px-4 py-2 rounded text-sm hover:bg-green-600"
+                          className="bg-green-500 text-white px-4 py-2 rounded text-sm hover:bg-green-600 transition-colors"
                         >
-                          Accept
+                          ✅ Accept
                         </button>
                         <button
                           onClick={() =>
-                            updateBookingStatus(booking._id, "rejected")
+                            handleStatusUpdate(
+                              booking._id,
+                              "cancelled",
+                              "decline"
+                            )
                           }
-                          className="bg-red-500 text-white px-4 py-2 rounded text-sm hover:bg-red-600"
+                          className="bg-red-500 text-white px-4 py-2 rounded text-sm hover:bg-red-600 transition-colors"
                         >
-                          Decline
+                          ❌ Decline
                         </button>
                       </>
                     )}
                     {booking.status === "confirmed" && (
                       <button
                         onClick={() =>
-                          updateBookingStatus(booking._id, "completed")
+                          handleStatusUpdate(
+                            booking._id,
+                            "completed",
+                            "mark as complete"
+                          )
                         }
-                        className="bg-blue-500 text-white px-4 py-2 rounded text-sm hover:bg-blue-600"
+                        className="bg-blue-500 text-white px-4 py-2 rounded text-sm hover:bg-blue-600 transition-colors"
                       >
-                        Mark Complete
+                        ✅ Mark Complete
                       </button>
                     )}
-                    <button className="text-indigo-600 hover:text-indigo-800 text-sm">
-                      Message
+                    {(booking.status === "pending" ||
+                      booking.status === "confirmed") && (
+                      <button
+                        onClick={() =>
+                          handleStatusUpdate(booking._id, "cancelled", "cancel")
+                        }
+                        className="bg-gray-500 text-white px-4 py-2 rounded text-sm hover:bg-gray-600 transition-colors"
+                      >
+                        ✕ Cancel
+                      </button>
+                    )}
+
+                    {/* Message button - you can implement this later */}
+                    <button
+                      onClick={() => {
+                        showBookingStatus(
+                          "Messaging feature coming soon!",
+                          "info"
+                        );
+                      }}
+                      className="text-indigo-600 hover:text-indigo-800 text-sm border border-indigo-200 px-3 py-2 rounded hover:bg-indigo-50 transition-colors"
+                    >
+                      💬 Message
                     </button>
                   </div>
                 </div>
@@ -225,11 +395,19 @@ export default function GuideBookingsPage() {
             ))
           ) : (
             <div className="bg-white rounded-lg shadow p-8 text-center">
-              <p className="text-gray-500 text-lg">No booking requests found</p>
+              <div className="text-4xl mb-4">📅</div>
+              <p className="text-gray-500 text-lg mb-2">
+                No booking requests found
+              </p>
+              <p className="text-gray-400 text-sm">
+                {filter !== "all"
+                  ? `No ${filter} bookings`
+                  : "You don't have any booking requests yet"}
+              </p>
               {filter !== "all" && (
                 <button
                   onClick={() => setFilter("all")}
-                  className="text-indigo-600 hover:text-indigo-800 mt-2"
+                  className="text-indigo-600 hover:text-indigo-800 mt-4 font-medium"
                 >
                   View all bookings
                 </button>
@@ -239,35 +417,37 @@ export default function GuideBookingsPage() {
         </div>
 
         {/* Statistics */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white p-4 rounded-lg shadow text-center">
-            <div className="text-2xl font-bold text-indigo-600">
-              {bookings.length}
+        {bookings.length > 0 && (
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white p-4 rounded-lg shadow text-center">
+              <div className="text-2xl font-bold text-indigo-600">
+                {bookings.length}
+              </div>
+              <div className="text-gray-600">Total Bookings</div>
             </div>
-            <div className="text-gray-600">Total Bookings</div>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow text-center">
-            <div className="text-2xl font-bold text-green-600">
-              {bookings.filter((b) => b.status === "completed").length}
+            <div className="bg-white p-4 rounded-lg shadow text-center">
+              <div className="text-2xl font-bold text-green-600">
+                {bookings.filter((b) => b.status === "completed").length}
+              </div>
+              <div className="text-gray-600">Completed</div>
             </div>
-            <div className="text-gray-600">Completed</div>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow text-center">
-            <div className="text-2xl font-bold text-yellow-600">
-              {bookings.filter((b) => b.status === "pending").length}
+            <div className="bg-white p-4 rounded-lg shadow text-center">
+              <div className="text-2xl font-bold text-yellow-600">
+                {bookings.filter((b) => b.status === "pending").length}
+              </div>
+              <div className="text-gray-600">Pending</div>
             </div>
-            <div className="text-gray-600">Pending</div>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow text-center">
-            <div className="text-2xl font-bold text-blue-600">
-              ₹
-              {bookings
-                .filter((b) => b.status === "completed")
-                .reduce((sum, b) => sum + b.price, 0)}
+            <div className="bg-white p-4 rounded-lg shadow text-center">
+              <div className="text-2xl font-bold text-blue-600">
+                ₹
+                {bookings
+                  .filter((b) => b.status === "completed")
+                  .reduce((sum, b) => sum + (b.price || 0), 0)}
+              </div>
+              <div className="text-gray-600">Total Earnings</div>
             </div>
-            <div className="text-gray-600">Total Earnings</div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

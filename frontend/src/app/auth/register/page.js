@@ -3,6 +3,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "../../components/AuthProvider";
+import { api } from "../../utils/app";
+import { useRedirectIfAuthenticated } from "../../hooks/useAuthGuard";
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -22,30 +24,53 @@ export default function RegisterPage() {
   const router = useRouter();
   const { login } = useAuth();
 
+  useRedirectIfAuthenticated();
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+      console.log("🔄 Register: Attempting registration...");
+      const data = await api.register(formData);
 
-      const data = await response.json();
+      console.log("✅ Register: Response received", data);
 
       if (data.success) {
-        login(data.token, data.user);
-        router.push("/dashboard");
+        console.log("✅ Register: Success, storing data...");
+
+        // CRITICAL: Make sure we have both token and user
+        if (data.token && data.user) {
+          console.log("💾 Register: Saving to localStorage...");
+
+          // Save to localStorage FIRST
+          if (typeof window !== "undefined") {
+            localStorage.setItem("token", data.token);
+            localStorage.setItem("user", JSON.stringify(data.user));
+            console.log("✅ Register: Data saved to localStorage");
+            console.log("Token saved:", data.token.substring(0, 20) + "...");
+            console.log("User saved:", data.user);
+          }
+
+          // THEN call login to update AuthProvider state
+          console.log("🔄 Register: Updating AuthProvider state...");
+          login(data.token, data.user);
+
+          // THEN redirect
+          console.log("🔄 Register: Redirecting to dashboard...");
+          router.push("/dashboard");
+        } else {
+          console.error("❌ Register: Missing token or user in response");
+          setError("Invalid response from server");
+        }
       } else {
+        console.error("❌ Register: API returned success: false");
         setError(data.message || "Registration failed");
       }
     } catch (error) {
-      setError("Network error. Please try again.");
+      console.error("❌ Register: Error occurred", error);
+      setError(error.message || "Network error. Please try again.");
     } finally {
       setLoading(false);
     }

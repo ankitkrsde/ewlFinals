@@ -7,6 +7,7 @@ const {
   getUserStats,
 } = require("../controllers/userController");
 const { protect, authorize } = require("../middleware/auth");
+const { getMe } = require("../controllers/authController");
 
 const router = express.Router();
 
@@ -17,5 +18,6 @@ router.get("/stats", authorize("admin"), getUserStats);
 router.get("/:id", getUser);
 router.put("/:id", updateUser);
 router.delete("/:id", authorize("admin"), deleteUser);
+router.get("/me", protect, getMe);
 
 module.exports = router;

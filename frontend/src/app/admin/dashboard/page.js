@@ -1,8 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import AdminRoute from "../../components/AdminRoute"; // Add this import
 
-export default function AdminDashboardPage() {
+// Move all your existing content to this inner component
+function AdminDashboardContent() {
   const [stats, setStats] = useState({});
   const [recentActivities, setRecentActivities] = useState([]);
   const [pendingVerifications, setPendingVerifications] = useState([]);
@@ -13,10 +15,11 @@ export default function AdminDashboardPage() {
     const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user"));
 
-    if (!token || user?.role !== "admin") {
-      router.push("/auth/login");
-      return;
-    }
+    // REMOVE THIS MANUAL CHECK - AdminRoute handles it
+    // if (!token || user?.role !== "admin") {
+    //   router.push("/auth/login");
+    //   return;
+    // }
 
     fetchDashboardData(token);
   }, []);
@@ -217,16 +220,28 @@ export default function AdminDashboardPage() {
             </div>
             <div className="p-6">
               <div className="grid grid-cols-1 gap-3">
-                <button className="w-full bg-indigo-600 text-white py-3 rounded hover:bg-indigo-700">
+                <button
+                  onClick={() => router.push("/admin/users")}
+                  className="w-full bg-indigo-600 text-white py-3 rounded hover:bg-indigo-700"
+                >
                   Manage Users
                 </button>
-                <button className="w-full bg-green-600 text-white py-3 rounded hover:bg-green-700">
+                <button
+                  onClick={() => router.push("/admin/guides")}
+                  className="w-full bg-green-600 text-white py-3 rounded hover:bg-green-700"
+                >
                   View All Guides
                 </button>
-                <button className="w-full bg-blue-600 text-white py-3 rounded hover:bg-blue-700">
+                <button
+                  onClick={() => router.push("/admin/reports")}
+                  className="w-full bg-blue-600 text-white py-3 rounded hover:bg-blue-700"
+                >
                   Generate Reports
                 </button>
-                <button className="w-full bg-purple-600 text-white py-3 rounded hover:bg-purple-700">
+                <button
+                  onClick={() => router.push("/admin/settings")}
+                  className="w-full bg-purple-600 text-white py-3 rounded hover:bg-purple-700"
+                >
                   System Settings
                 </button>
               </div>
@@ -258,5 +273,14 @@ export default function AdminDashboardPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Wrap the main component with AdminRoute
+export default function AdminDashboardPage() {
+  return (
+    <AdminRoute>
+      <AdminDashboardContent />
+    </AdminRoute>
   );
 }

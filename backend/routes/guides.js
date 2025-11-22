@@ -6,21 +6,31 @@ const {
   getGuidesByCity,
   getMyGuideProfile,
   updateAvailability,
+  checkGuideAvailability,
+  getGuideStats,
+  updateGuideProfile,
+  getGuideEarnings,
 } = require("../controllers/guideController");
 const { protect, authorize } = require("../middleware/auth");
-const { uploadMultiple } = require("../middleware/upload");
 
 const router = express.Router();
 
+// ========== PUBLIC ROUTES ==========
 router.get("/", getGuides);
 router.get("/city/:city", getGuidesByCity);
+
+// ========== PROTECTED ROUTES ==========
+// SPECIFIC ROUTES MUST COME BEFORE PARAMETERIZED ROUTES
+router.get("/me", protect, authorize("guide"), getMyGuideProfile);
+router.get("/stats", protect, authorize("guide"), getGuideStats);
+router.get("/earnings", protect, authorize("guide"), getGuideEarnings);
+router.post("/", protect, authorize("guide"), createUpdateGuideProfile);
+router.put("/", protect, authorize("guide"), createUpdateGuideProfile);
+router.put("/profile", protect, authorize("guide"), updateGuideProfile);
+router.put("/availability", protect, authorize("guide"), updateAvailability);
+
+// ========== PARAMETERIZED ROUTES (MUST COME LAST) ==========
 router.get("/:id", getGuide);
-
-router.use(protect);
-
-router.get("/me/guide", authorize("guide"), getMyGuideProfile);
-router.post("/", authorize("guide"), uploadMultiple, createUpdateGuideProfile);
-router.put("/", authorize("guide"), uploadMultiple, createUpdateGuideProfile);
-router.put("/availability", authorize("guide"), updateAvailability);
+router.get("/:id/availability", checkGuideAvailability);
 
 module.exports = router;

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import AuthDebugger from "@/app/debug/AuthDebugger";
 
 export default function GuideProfilePage() {
   const [profile, setProfile] = useState(null);
