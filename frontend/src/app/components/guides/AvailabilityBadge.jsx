@@ -1,19 +1,15 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 export default function AvailabilityBadge({ guideId, showText = false }) {
   const [availability, setAvailability] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    checkAvailability();
-  }, [guideId]);
-
-  const checkAvailability = async () => {
+ const checkAvailability = useCallback(async () => {
     try {
       const today = new Date().toISOString().split("T")[0];
       const response = await fetch(
-        `http://localhost:5000/api/guides/${guideId}/availability?date=${today}`
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/guides/${guideId}/availability?date=${today}`
       );
       const data = await response.json();
 
@@ -25,7 +21,11 @@ export default function AvailabilityBadge({ guideId, showText = false }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [guideId]);
+
+  useEffect(() => {
+    checkAvailability();
+  }, [checkAvailability]);
 
   if (loading) {
     return (

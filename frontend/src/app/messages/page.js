@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 export default function MessagesPage() {
@@ -10,19 +10,10 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/auth/login");
-      return;
-    }
-    fetchConversations(token);
-  }, []);
-
-  const fetchConversations = async (token) => {
+    const fetchConversations = useCallback(async (token) => {
     try {
       const response = await fetch(
-        "http://localhost:5000/api/messages/conversations",
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/messages/conversations`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -40,7 +31,17 @@ export default function MessagesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/auth/login");
+      return;
+    }
+    fetchConversations(token);
+  }, [router, fetchConversations]);
+
 
   const selectConversation = async (conversation, token) => {
     setSelectedConversation(conversation);

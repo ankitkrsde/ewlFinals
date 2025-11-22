@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import ReviewForm from "./ReviewForm";
 
 export default function ReviewButton({ booking }) {
@@ -9,15 +9,11 @@ export default function ReviewButton({ booking }) {
   const [checking, setChecking] = useState(true);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    checkIfReviewed();
-  }, [booking._id]);
-
-  const checkIfReviewed = async () => {
+  const checkIfReviewed = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `http://localhost:5000/api/reviews/booking/${booking._id}`,
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/reviews/booking/${booking._id}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -31,7 +27,11 @@ export default function ReviewButton({ booking }) {
     } finally {
       setChecking(false);
     }
-  };
+  }, [booking._id]);
+
+  useEffect(() => {
+    checkIfReviewed();
+  }, [checkIfReviewed]);
 
   const handleReviewSubmitted = (reviewData) => {
     setShowReviewForm(false);

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -20,19 +20,10 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages]);
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/auth/login");
-      return;
-    }
-    fetchMessages(token);
-  }, [params.chatId]);
-
-  const fetchMessages = async (token) => {
+  const fetchMessages = useCallback(async (token) => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/messages/${params.chatId}`,
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/messages/${params.chatId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -55,7 +46,16 @@ export default function ChatPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [params.chatId]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/auth/login");
+      return;
+    }
+    fetchMessages(token);
+  }, [params.chatId, router, fetchMessages]);
 
   const sendMessage = async (e) => {
     e.preventDefault();

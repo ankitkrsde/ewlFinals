@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 export default function GuideBookingsPage() {
@@ -15,21 +15,9 @@ export default function GuideBookingsPage() {
   const [pendingAction, setPendingAction] = useState(null);
   const router = useRouter();
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const user = JSON.parse(localStorage.getItem("user"));
-
-    if (!token || user?.role !== "guide") {
-      router.push("/auth/login");
-      return;
-    }
-
-    fetchBookings(token);
-  }, []);
-
-  const fetchBookings = async (token) => {
+  const fetchBookings = useCallback(async (token) => {
     try {
-      const response = await fetch("http://localhost:5000/api/bookings", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/bookings`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -42,7 +30,19 @@ export default function GuideBookingsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    if (!token || user?.role !== "guide") {
+      router.push("/auth/login");
+      return;
+    }
+
+    fetchBookings(token);
+  }, [router, fetchBookings]);
 
   const showBookingStatus = (message, type = "success") => {
     setBookingStatus({ show: true, message, type });

@@ -24,4 +24,3 @@ export default function HomePage() {
   );
 }
 
-// stop i will give you the other components code so you can enhance them, please dont go forward too fast, until i provide the particular page of code to enhance
