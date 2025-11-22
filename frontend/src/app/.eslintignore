@@ -1,0 +1,7 @@
+*.json
+*.md
+*.txt
+.next/
+node_modules/
+out/
+public/
