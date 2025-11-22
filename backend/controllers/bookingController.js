@@ -20,14 +20,25 @@ exports.createBooking = async (req, res, next) => {
     // Check if guide exists and is verified
     const guide = await GuideProfile.findOne({
       userId: guideId,
-      verificationStatus: "approved",
+      // verificationStatus: "approved",
       isAvailable: true,
-    });
+    }).populate("userId", "name email");
+
+    // If not found by userId, try by _id
+    if (!guide) {
+      guide = await GuideProfile.findOne({
+        _id: guideId,
+        isAvailable: true,
+      }).populate("userId", "name email");
+    }
+
+    console.log("🔍 Guide found:", guide);
 
     if (!guide) {
       return res.status(404).json({
         success: false,
-        message: "Guide not found or not available",
+        message:
+          "Guide not found or not available. Please check if the guide exists and is marked as available.",
       });
     }
 
@@ -150,86 +161,106 @@ exports.getBooking = async (req, res, next) => {
 exports.updateBookingStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
-    const booking = await Booking.findById(req.params.id);
+    const bookingId = req.params.id;
+
+    console.log("=== UPDATE BOOKING STATUS START ===");
+    console.log("🔧 Booking ID:", bookingId);
+    console.log("🔧 Requested Status:", status);
+    console.log("🔧 User ID:", req.user.id);
+    console.log("🔧 User Role:", req.user.role);
+    console.log("🔧 Full Request Body:", req.body);
+
+    // Validate booking ID format
+    if (!bookingId || bookingId.length !== 24) {
+      console.log("❌ Invalid booking ID format");
+      return res.status(400).json({
+        success: false,
+        message: "Invalid booking ID format",
+      });
+    }
+
+    // Find the booking first
+    const booking = await Booking.findById(bookingId);
 
     if (!booking) {
+      console.log("❌ Booking not found in database");
       return res.status(404).json({
         success: false,
         message: "Booking not found",
       });
     }
 
-    // Check authorization
-    if (
-      req.user.role === "tourist" &&
-      booking.touristId.toString() !== req.user.id
-    ) {
-      return res.status(403).json({
-        success: false,
-        message: "Not authorized to update this booking",
-      });
-    }
+    console.log("🔧 Found booking:", {
+      id: booking._id,
+      guideId: booking.guideId,
+      touristId: booking.touristId,
+      currentStatus: booking.status,
+    });
 
-    if (
-      req.user.role === "guide" &&
-      booking.guideId.toString() !== req.user.id
-    ) {
-      return res.status(403).json({
-        success: false,
-        message: "Not authorized to update this booking",
-      });
-    }
+    // Check if user is authorized to update this booking
+    if (req.user.role === "guide") {
+      // For guides, check if they own this booking
+      console.log("🔧 Checking guide authorization...");
+      console.log("🔧 User ID:", req.user.id);
+      console.log("🔧 Booking Guide ID:", booking.guideId.toString());
 
-    // Update status based on user role and current status
-    let updatedBooking;
-
-    if (req.user.role === "guide" && booking.status === "pending") {
-      // Guide can accept or reject pending bookings
-      if (["confirmed", "rejected"].includes(status)) {
-        updatedBooking = await Booking.findByIdAndUpdate(
-          req.params.id,
-          { status },
-          { new: true, runValidators: true }
-        ).populate("touristId guideId", "name email");
+      if (booking.guideId.toString() !== req.user.id) {
+        console.log("❌ Guide not authorized - ID mismatch");
+        return res.status(403).json({
+          success: false,
+          message: "Not authorized to update this booking",
+        });
       }
-    } else if (req.user.role === "tourist" && booking.status === "confirmed") {
-      // Tourist can cancel confirmed bookings
-      if (status === "cancelled") {
-        updatedBooking = await Booking.findByIdAndUpdate(
-          req.params.id,
-          {
-            status,
-            cancellation: {
-              cancelledBy: "tourist",
-              reason: req.body.reason,
-              timestamp: new Date(),
-            },
-          },
-          { new: true, runValidators: true }
-        ).populate("touristId guideId", "name email");
+      console.log("✅ Guide authorized");
+    } else if (req.user.role === "tourist") {
+      // For tourists, check if they own this booking
+      if (booking.touristId.toString() !== req.user.id) {
+        console.log("❌ Tourist not authorized");
+        return res.status(403).json({
+          success: false,
+          message: "Not authorized to update this booking",
+        });
       }
-    } else if (req.user.role === "admin") {
-      // Admin can update any status
-      updatedBooking = await Booking.findByIdAndUpdate(
-        req.params.id,
-        { status },
-        { new: true, runValidators: true }
-      ).populate("touristId guideId", "name email");
     }
+    // Admin can update any booking
 
-    if (!updatedBooking) {
+    // Validate status transition
+    const validStatuses = ["pending", "confirmed", "completed", "cancelled"];
+    if (!validStatuses.includes(status)) {
+      console.log("❌ Invalid status:", status);
       return res.status(400).json({
         success: false,
-        message: "Invalid status update",
+        message:
+          "Invalid status. Must be one of: pending, confirmed, completed, cancelled",
       });
     }
+
+    console.log("✅ All validations passed - updating booking...");
+
+    // Update the booking
+    const updatedBooking = await Booking.findByIdAndUpdate(
+      bookingId,
+      { status },
+      { new: true, runValidators: true }
+    )
+      .populate("guideId", "name email")
+      .populate("touristId", "name email");
+
+    console.log("✅ Status updated successfully:", updatedBooking.status);
+    console.log("=== UPDATE BOOKING STATUS END ===");
 
     res.status(200).json({
       success: true,
       data: updatedBooking,
     });
   } catch (error) {
-    next(error);
+    console.error("❌ Error updating booking status:", error);
+    console.error("❌ Error stack:", error.stack);
+    res.status(500).json({
+      success: false,
+      message: "Server error while updating booking status",
+      error: error.message, // Include error message for debugging
+    });
   }
 };
 

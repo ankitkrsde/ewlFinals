@@ -65,6 +65,29 @@ export default function Header() {
             >
               Contact Us
             </Link>
+
+            {/* Role-based navigation links - Desktop */}
+            {user && (
+              <>
+                {/* Admin link - only show for admin users */}
+                {user.role === "admin" && (
+                  <Link
+                    href="/admin/dashboard"
+                    className="font-poppins font-semibold text-gray-800 hover:text-primary"
+                  >
+                    Admin
+                  </Link>
+                )}
+
+                {/* Profile link - show for all logged in users */}
+                <Link
+                  href="/profile"
+                  className="font-poppins font-semibold text-gray-800 hover:text-primary"
+                >
+                  Profile
+                </Link>
+              </>
+            )}
           </div>
 
           <div className="hidden md:flex items-center gap-x-2 lg:gap-x-4">
@@ -72,6 +95,12 @@ export default function Header() {
               <div>Loading...</div>
             ) : user ? (
               <div className="flex items-center gap-x-4">
+                {/* Dashboard Button - Added here */}
+                <Link href="/dashboard">
+                  <button className="bg-blue-600 font-medium font-poppins rounded-full px-4 py-2 text-white hover:bg-blue-500 hover:shadow-lg transition duration-300">
+                    Dashboard
+                  </button>
+                </Link>
                 <span className="font-poppins text-gray-800">
                   Welcome, {user.name}
                 </span>
@@ -147,6 +176,42 @@ export default function Header() {
                 >
                   Contact Us
                 </Link>
+
+                {/* Role-based navigation links - Mobile */}
+                {user && (
+                  <>
+                    {/* Admin link - only show for admin users */}
+                    {user.role === "admin" && (
+                      <Link
+                        href="/admin/dashboard"
+                        className="mx-3 my-3 p-3 hover:bg-gray-200 font-poppins block font-semibold text-gray-800 rounded-md"
+                        onClick={toggleMenu}
+                      >
+                        Admin
+                      </Link>
+                    )}
+
+                    {/* Profile link - show for all logged in users */}
+                    <Link
+                      href="/profile"
+                      className="mx-3 my-3 p-3 hover:bg-gray-200 font-poppins block font-semibold text-gray-800 rounded-md"
+                      onClick={toggleMenu}
+                    >
+                      Profile
+                    </Link>
+                  </>
+                )}
+
+                {/* Dashboard Link in Mobile Menu - Only show if user is logged in */}
+                {user && (
+                  <Link
+                    href="/dashboard"
+                    className="mx-3 my-3 p-3 hover:bg-gray-200 font-poppins block font-semibold text-gray-800 rounded-md"
+                    onClick={toggleMenu}
+                  >
+                    Dashboard
+                  </Link>
+                )}
               </div>
               <div className="h-[2px] w-full my-4 bg-gray-200"></div>
               <div className="flex flex-col items-center gap-4 mt-4 mx-7 px-6 py-2">
@@ -157,6 +222,15 @@ export default function Header() {
                     <span className="font-poppins text-gray-800 text-center">
                       Welcome, {user.name}
                     </span>
+                    {/* Dashboard Button in Mobile Auth Section */}
+                    <Link href="/dashboard" className="w-full text-center">
+                      <button
+                        className="bg-blue-600 font-medium font-poppins rounded-full px-16 py-2 text-white hover:bg-blue-500 hover:transition hover:duration-300 w-full"
+                        onClick={toggleMenu}
+                      >
+                        Dashboard
+                      </button>
+                    </Link>
                     <button
                       onClick={handleLogout}
                       className="bg-transparent font-medium font-poppins rounded-full px-16 py-2 border border-gray-300 text-black hover:bg-red-500 hover:text-white hover:transition hover:duration-300 w-full"

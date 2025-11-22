@@ -24,7 +24,7 @@ const protect = async (req, res, next) => {
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // Get user from token
+      // Get user from token with fresh data
       req.user = await User.findById(decoded.id).select("-password");
 
       if (!req.user) {
@@ -34,12 +34,33 @@ const protect = async (req, res, next) => {
         });
       }
 
+      // Optional: Check if user is active
+      if (req.user.status === "suspended") {
+        return res.status(401).json({
+          success: false,
+          message: "Account suspended",
+        });
+      }
+
       next();
     } catch (error) {
-      return res.status(401).json({
-        success: false,
-        message: "Not authorized, token failed",
-      });
+      // Handle different JWT errors
+      if (error.name === "TokenExpiredError") {
+        return res.status(401).json({
+          success: false,
+          message: "Token expired, please login again",
+        });
+      } else if (error.name === "JsonWebTokenError") {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid token",
+        });
+      } else {
+        return res.status(401).json({
+          success: false,
+          message: "Not authorized, token failed",
+        });
+      }
     }
   } catch (error) {
     return res.status(500).json({

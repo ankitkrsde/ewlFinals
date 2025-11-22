@@ -4,9 +4,10 @@ import Hero from "../components/hero";
 import CityCards from "../components/cityCards";
 import LocalsSection from "../components/localsSection";
 import WhyChooseUs from "../components/whyChooseUs";
-import Reviews from "../components/reviews";
+
 import Guide from "../components/guide";
 import { useAuth } from "../components/AuthProvider";
+import Reviews from "../components/reviews/reviews";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -18,7 +19,7 @@ export default function HomePage() {
       <LocalsSection />
       <WhyChooseUs />
       <Reviews />
-      <Guide user={user} />
+      {/* <Guide user={user} /> */}
     </div>
   );
 }

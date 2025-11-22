@@ -10,6 +10,7 @@ const guideProfileSchema = new mongoose.Schema({
   bio: {
     type: String,
     maxlength: [1000, "Bio cannot be more than 1000 characters"],
+    default: "",
   },
   specialties: [
     {
@@ -35,7 +36,7 @@ const guideProfileSchema = new mongoose.Schema({
   },
   hourlyRate: {
     type: Number,
-    required: true,
+    default: 0,
     min: [0, "Hourly rate cannot be negative"],
   },
   services: [
@@ -45,8 +46,14 @@ const guideProfileSchema = new mongoose.Schema({
         required: true,
       },
       description: String,
-      duration: Number,
-      price: Number,
+      duration: {
+        type: Number,
+        default: 0,
+      },
+      price: {
+        type: Number,
+        default: 0,
+      },
     },
   ],
   availability: [
@@ -65,25 +72,18 @@ const guideProfileSchema = new mongoose.Schema({
       },
       slots: [
         {
-          start: String,
-          end: String,
+          start: {
+            type: String,
+            default: "09:00",
+          },
+          end: {
+            type: String,
+            default: "17:00",
+          },
         },
       ],
     },
   ],
-  documents: {
-    idProof: {
-      type: String,
-      required: true,
-    },
-    addressProof: String,
-    verificationPhoto: String,
-  },
-  verificationStatus: {
-    type: String,
-    enum: ["pending", "approved", "rejected"],
-    default: "pending",
-  },
   rating: {
     average: {
       type: Number,
@@ -118,7 +118,6 @@ const guideProfileSchema = new mongoose.Schema({
   cities: [
     {
       type: String,
-      required: true,
     },
   ],
   languages: [
@@ -153,11 +152,83 @@ const guideProfileSchema = new mongoose.Schema({
 guideProfileSchema.index({ userId: 1 });
 guideProfileSchema.index({ cities: 1 });
 guideProfileSchema.index({ "rating.average": -1 });
+guideProfileSchema.index({ isAvailable: 1 });
 
-// Update updatedAt
+// Update updatedAt before saving
 guideProfileSchema.pre("save", function (next) {
   this.updatedAt = Date.now();
   next();
 });
+
+// Static method to calculate and update rating
+guideProfileSchema.statics.updateRating = async function (guideId) {
+  const Review = mongoose.model("Review");
+
+  const ratingStats = await Review.aggregate([
+    {
+      $match: { guideId: mongoose.Types.ObjectId(guideId) },
+    },
+    {
+      $group: {
+        _id: "$guideId",
+        averageRating: { $avg: "$rating" },
+        totalReviews: { $sum: 1 },
+        knowledgeAvg: { $avg: "$ratingBreakdown.knowledge" },
+        communicationAvg: { $avg: "$ratingBreakdown.communication" },
+        punctualityAvg: { $avg: "$ratingBreakdown.punctuality" },
+      },
+    },
+  ]);
+
+  if (ratingStats.length > 0) {
+    const stats = ratingStats[0];
+    await this.findByIdAndUpdate(guideId, {
+      "rating.average": Math.round(stats.averageRating * 10) / 10,
+      "rating.count": stats.totalReviews,
+      "rating.breakdown.knowledge": Math.round(stats.knowledgeAvg * 10) / 10,
+      "rating.breakdown.communication":
+        Math.round(stats.communicationAvg * 10) / 10,
+      "rating.breakdown.punctuality":
+        Math.round(stats.punctualityAvg * 10) / 10,
+    });
+  }
+};
+
+// Instance method to check if guide is available on a specific day
+guideProfileSchema.methods.isAvailableOnDay = function (day) {
+  const dayAvailability = this.availability.find((avail) => avail.day === day);
+  return dayAvailability && dayAvailability.slots.length > 0;
+};
+
+// Virtual for profile completion percentage
+guideProfileSchema.virtual("completionPercentage").get(function () {
+  const requiredFields = [
+    "bio",
+    "specialties",
+    "experience",
+    "hourlyRate",
+    "cities",
+    "languages",
+    "services",
+  ];
+
+  let completedFields = 0;
+
+  requiredFields.forEach((field) => {
+    if (field === "bio" && this[field] && this[field].trim().length > 0) {
+      completedFields++;
+    } else if (Array.isArray(this[field]) && this[field].length > 0) {
+      completedFields++;
+    } else if (typeof this[field] === "number" && this[field] > 0) {
+      completedFields++;
+    }
+  });
+
+  return Math.round((completedFields / requiredFields.length) * 100);
+});
+
+// Ensure virtual fields are serialized
+guideProfileSchema.set("toJSON", { virtuals: true });
+guideProfileSchema.set("toObject", { virtuals: true });
 
 module.exports = mongoose.model("GuideProfile", guideProfileSchema);

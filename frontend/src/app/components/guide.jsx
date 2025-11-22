@@ -181,7 +181,7 @@ export default function Guide({ user }) {
             {/* Quick Stats */}
             <div className="grid grid-cols-3 gap-4 sm:gap-8 mt-4 text-white">
               <div className="text-center">
-                <div className="text-xl sm:text-2xl font-bold">₹2,500+</div>
+                <div className="text-xl sm:text-2xl font-bold">₹25,000+</div>
                 <div className="text-xs sm:text-sm">Avg. Monthly Earnings</div>
               </div>
               <div className="text-center">
