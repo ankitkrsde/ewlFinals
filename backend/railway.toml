@@ -3,6 +3,7 @@ builder = "nixpacks"
 
 [deploy]
 startCommand = "npm start"
+rootDirectory = "backend"
 
 [env]
 NODE_ENV = "production"
