@@ -1,11 +1,12 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../components/AuthProvider";
 import { api } from "../utils/app";
 import { IoIosStar, IoIosStarHalf } from "react-icons/io";
 import ProtectedRoute from "../components/ProtectedRoute";
 import AvatarUpload from "../components/AvatarUpload";
+import Image from "next/image";
 
 function ProfileContent() {
   const { user, updateUser } = useAuth();
@@ -44,41 +45,7 @@ function ProfileContent() {
   const [activeTab, setActiveTab] = useState("profile");
   const [guideProfileLoaded, setGuideProfileLoaded] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      setFormData({
-        name: user.name || "",
-        email: user.email || "",
-        phone: user.phone || "",
-        bio: user.bio || "",
-        location: user.location || {
-          city: "",
-          state: "",
-          country: "India",
-        },
-        languages: user.languages || [],
-      });
-
-      // Load guide profile if user is a guide
-      if (user.role === "guide") {
-        loadGuideProfile();
-      }
-    }
-  }, [user]);
-
-  // Load guide data when guide tab becomes active
-  useEffect(() => {
-    if (
-      activeTab === "guide" &&
-      user?.role === "guide" &&
-      !guideProfileLoaded
-    ) {
-      console.log("🔄 Guide tab activated, loading guide profile...");
-      loadGuideProfile();
-    }
-  }, [activeTab, user, guideProfileLoaded]);
-
-  const loadGuideProfile = async () => {
+   const loadGuideProfile = useCallback(async () => {
     try {
       setLoading(true);
       console.log("🔄 Loading guide profile for user:", user?.id);
@@ -107,8 +74,6 @@ function ProfileContent() {
           console.log(
             "ℹ️ No guide profile found - this guide needs to create their profile"
           );
-          // Don't set empty state - let them fill the form from scratch
-          // This prevents sending empty arrays that wipe out existing data
           setGuideProfileLoaded(false);
         }
       } else {
@@ -121,7 +86,41 @@ function ProfileContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        bio: user.bio || "",
+        location: user.location || {
+          city: "",
+          state: "",
+          country: "India",
+        },
+        languages: user.languages || [],
+      });
+
+      // Load guide profile if user is a guide
+      if (user.role === "guide") {
+        loadGuideProfile();
+      }
+    }
+  }, [user, loadGuideProfile]);
+
+  // Load guide data when guide tab becomes active
+  useEffect(() => {
+    if (
+      activeTab === "guide" &&
+      user?.role === "guide" &&
+      !guideProfileLoaded
+    ) {
+      console.log("🔄 Guide tab activated, loading guide profile...");
+      loadGuideProfile();
+    }
+  }, [activeTab, user, guideProfileLoaded, loadGuideProfile]);
 
   // Force reload guide profile data
   const reloadGuideProfile = async () => {

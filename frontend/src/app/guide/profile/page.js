@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import AuthDebugger from "@/app/debug/AuthDebugger";
 
@@ -10,21 +10,9 @@ export default function GuideProfilePage() {
   const [saving, setSaving] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const user = JSON.parse(localStorage.getItem("user"));
-
-    if (!token || user?.role !== "guide") {
-      router.push("/auth/login");
-      return;
-    }
-
-    fetchProfile(token);
-  }, []);
-
-  const fetchProfile = async (token) => {
+    const fetchProfile = useCallback(async (token) => {
     try {
-      const response = await fetch("http://localhost:5000/api/guides/me", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/guides/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -38,7 +26,19 @@ export default function GuideProfilePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    if (!token || user?.role !== "guide") {
+      router.push("/auth/login");
+      return;
+    }
+
+    fetchProfile(token);
+  }, [router, fetchProfile]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

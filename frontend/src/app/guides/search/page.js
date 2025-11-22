@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { debounce } from "lodash";
 import Image from "next/image";
@@ -23,12 +23,7 @@ export default function GuideSearchPage() {
   const [sortBy, setSortBy] = useState("rating");
   const { user } = useAuth();
 
-  useEffect(() => {
-    console.log("Component mounted, fetching guides...");
-    fetchGuides();
-  }, []);
-
-  const fetchGuides = async (searchFilters = {}) => {
+  const fetchGuides = useCallback(async (searchFilters = {}) => {
     setLoading(true);
     try {
       const queryParams = new URLSearchParams({
@@ -38,11 +33,11 @@ export default function GuideSearchPage() {
 
       console.log(
         "Fetching from:",
-        `http://localhost:5000/api/guides?${queryParams}`
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/guides?${queryParams}`
       );
 
       const response = await fetch(
-        `http://localhost:5000/api/guides?${queryParams}`
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/guides?${queryParams}`
       );
       const data = await response.json();
 
@@ -61,17 +56,16 @@ export default function GuideSearchPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [sortBy]);
 
-  // Debounced search to avoid too many API calls
-  const debouncedSearch = useCallback(
+  // FIXED: Use useMemo for debounced function with explicit dependencies
+  const debouncedSearch = useMemo(() => 
     debounce((searchFilters) => {
       fetchGuides(searchFilters);
     }, 500),
-    []
-  );
+  [fetchGuides]);
 
-  const handleFilterChange = (key, value) => {
+  const handleFilterChange = useCallback((key, value) => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
 
@@ -81,17 +75,17 @@ export default function GuideSearchPage() {
     );
 
     debouncedSearch(cleanFilters);
-  };
+  }, [filters, debouncedSearch]);
 
-  const handleSortChange = (value) => {
+  const handleSortChange = useCallback((value) => {
     setSortBy(value);
     const cleanFilters = Object.fromEntries(
       Object.entries(filters).filter(([_, v]) => v !== "")
     );
     fetchGuides(cleanFilters);
-  };
+  }, [filters, fetchGuides]);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setFilters({
       city: "",
       language: "",
@@ -103,7 +97,19 @@ export default function GuideSearchPage() {
       availability: "",
     });
     fetchGuides();
-  };
+  }, [fetchGuides]);
+
+  useEffect(() => {
+    console.log("Component mounted, fetching guides...");
+    fetchGuides();
+  }, [fetchGuides]);
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      debouncedSearch.cancel();
+    };
+  }, [debouncedSearch]);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -308,7 +314,7 @@ function GuideCard({ guide, currentUser }) {
     if (!avatarPath) return "/images/default-avatar.jpg";
     if (avatarPath.startsWith("http")) return avatarPath;
     if (avatarPath.startsWith("/uploads/")) {
-      return `http://localhost:5000${avatarPath}`;
+      return `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}${avatarPath}`;
     }
     return "/images/default-avatar.jpg";
   };
@@ -413,7 +419,6 @@ function GuideCard({ guide, currentUser }) {
           <h3 className="text-xl font-semibold text-gray-900 line-clamp-1">
             {guide.userId?.name}
           </h3>
-          {/* Removed verification status badge since we removed verification requirement */}
         </div>
 
         <p className="text-gray-600 mb-3 flex items-center">

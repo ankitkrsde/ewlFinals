@@ -1,14 +1,14 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { useAuth } from "@/app/components/AuthProvider"; // Add this import
+import { useAuth } from "@/app/components/AuthProvider"; 
 
 export default function GuideProfilePage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth(); // Add this to get current user
+  const { user } = useAuth(); 
   const [guide, setGuide] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [showBookingForm, setShowBookingForm] = useState(false);
@@ -27,28 +27,14 @@ export default function GuideProfilePage() {
     show: false,
     message: "",
     type: "",
-  }); // Add this state
+  }); 
 
-  useEffect(() => {
-    console.log("🔍 Guide ID from URL:", params.id);
-    fetchGuideData();
-  }, [params.id]);
-
-  // Add this function for notifications
-  const showBookingStatus = (message, type = "success") => {
-    setBookingStatus({ show: true, message, type });
-
-    setTimeout(() => {
-      setBookingStatus({ show: false, message: "", type: "" });
-    }, 5000);
-  };
-
-  const fetchGuideData = async () => {
+   const fetchGuideData = useCallback(async () => {
     try {
       console.log("🌐 Fetching guide data for ID:", params.id);
 
       const response = await fetch(
-        `http://localhost:5000/api/guides/${params.id}`
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/guides/${params.id}`
       );
 
       console.log("✅ Response status:", response.status);
@@ -70,7 +56,23 @@ export default function GuideProfilePage() {
     } finally {
       setLoading(false);
     }
+  }, [params.id]);
+
+  useEffect(() => {
+    console.log("🔍 Guide ID from URL:", params.id);
+    fetchGuideData();
+  }, [fetchGuideData, params.id]);
+
+  // Add this function for notifications
+  const showBookingStatus = (message, type = "success") => {
+    setBookingStatus({ show: true, message, type });
+
+    setTimeout(() => {
+      setBookingStatus({ show: false, message: "", type: "" });
+    }, 5000);
   };
+
+  
 
   const handleBooking = async (e) => {
     e.preventDefault();

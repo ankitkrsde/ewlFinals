@@ -26,7 +26,7 @@ export default function BookingsPage() {
     }
     fetchBookings(token);
     fetchUserReviews(token);
-  }, []);
+  }, [router]);
 
   const fetchBookings = async (token) => {
     try {

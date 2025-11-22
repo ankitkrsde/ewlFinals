@@ -1,11 +1,31 @@
-const API_BASE_URL =
-  process.env.NODE_ENV === "production"
-    ? process.env.NEXT_PUBLIC_API_URL || "https://your-backend-domain.com"
-    : process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+// Enhanced environment detection for Vercel and production
+const getApiBaseUrl = () => {
+  // For browser environment - always use the public environment variable
+  if (typeof window !== "undefined") {
+    return process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  }
+
+  // For server-side environment (SSR) in production
+  if (process.env.NODE_ENV === "production") {
+    return (
+      process.env.NEXT_PUBLIC_API_URL ||
+      "https://explore-with-locals-backend.vercel.app"
+    );
+  }
+
+  // For server-side environment in development
+  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 class API {
   constructor() {
     this.baseURL = API_BASE_URL;
+    console.log("🚀 API Base URL:", this.baseURL); // Debug log
+
+    // Add request timeout
+    this.timeout = 30000; // 30 seconds
   }
 
   async request(endpoint, options = {}) {
@@ -25,27 +45,64 @@ class API {
       config.body = JSON.stringify(config.body);
     }
 
+    // Add timeout to fetch request
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+    config.signal = controller.signal;
+
     try {
       const response = await fetch(`${this.baseURL}${endpoint}`, config);
+      clearTimeout(timeoutId);
+
+      // Handle different response types
+      const contentType = response.headers.get("content-type");
 
       // Don't throw error for 404 - let the calling code handle it
       if (!response.ok && response.status !== 404) {
-        const errorText = await response.text();
         let errorData;
-        try {
-          errorData = JSON.parse(errorText);
-        } catch {
-          errorData = { message: errorText || "Request failed" };
+
+        if (contentType && contentType.includes("application/json")) {
+          errorData = await response.json();
+        } else {
+          const errorText = await response.text();
+          try {
+            errorData = JSON.parse(errorText);
+          } catch {
+            errorData = {
+              message: errorText || `HTTP error! status: ${response.status}`,
+            };
+          }
         }
+
         throw new Error(
           errorData.message || `HTTP error! status: ${response.status}`
         );
       }
 
-      const data = await response.json();
+      // Parse response based on content type
+      let data;
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        data = await response.text();
+      }
+
       return data;
     } catch (error) {
-      console.error("API Error:", error);
+      clearTimeout(timeoutId);
+
+      if (error.name === "AbortError") {
+        console.error("API Request timeout:", endpoint);
+        throw new Error("Request timeout - please try again");
+      }
+
+      console.error("API Error:", error.message, "Endpoint:", endpoint);
+
+      // Enhanced error messages
+      if (error.message.includes("Failed to fetch")) {
+        throw new Error("Network error - please check your connection");
+      }
+
       throw error;
     }
   }
@@ -53,6 +110,10 @@ class API {
   async upload(endpoint, formData) {
     const token =
       typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+    // Add timeout to upload request
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     try {
       const response = await fetch(`${this.baseURL}${endpoint}`, {
@@ -62,7 +123,10 @@ class API {
           // Don't set Content-Type for FormData, let browser set it with boundary
         },
         body: formData,
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -80,6 +144,13 @@ class API {
       const data = await response.json();
       return data;
     } catch (error) {
+      clearTimeout(timeoutId);
+
+      if (error.name === "AbortError") {
+        console.error("Upload timeout:", endpoint);
+        throw new Error("Upload timeout - please try again");
+      }
+
       console.error("Upload Error:", error);
       throw error;
     }
@@ -173,6 +244,19 @@ class API {
           message: "No guide profile found",
         };
       }
+
+      // Handle network errors specifically
+      if (
+        error.message.includes("Network error") ||
+        error.message.includes("Failed to fetch")
+      ) {
+        return {
+          success: false,
+          data: null,
+          message: "Network error - please check your connection",
+        };
+      }
+
       throw error;
     }
   }
@@ -180,7 +264,6 @@ class API {
   async createGuideProfile(guideData) {
     console.log("🔧 API: Creating new guide profile with:", guideData);
     const response = await this.request("/api/guides", {
-      // ✅ This should be POST to /api/guides
       method: "POST",
       body: guideData,
     });
@@ -191,7 +274,6 @@ class API {
   async updateGuideProfile(guideData) {
     console.log("🔧 API: Updating guide profile with:", guideData);
     const response = await this.request("/api/guides/profile", {
-      // ✅ This should be PUT to /api/guides/profile
       method: "PUT",
       body: guideData,
     });
@@ -270,7 +352,20 @@ class API {
 
   // Health check
   async healthCheck() {
-    return this.request("/api/health");
+    try {
+      const response = await this.request("/api/health");
+      return {
+        success: true,
+        data: response,
+        server: this.baseURL,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message,
+        server: this.baseURL,
+      };
+    }
   }
 
   // Generic methods
@@ -296,6 +391,29 @@ class API {
     return this.request(endpoint, {
       method: "DELETE",
     });
+  }
+
+  // Utility method to check API connectivity
+  async checkConnectivity() {
+    try {
+      const startTime = Date.now();
+      const response = await this.healthCheck();
+      const endTime = Date.now();
+
+      return {
+        connected: response.success,
+        responseTime: endTime - startTime,
+        server: this.baseURL,
+        message: response.success ? "Connected successfully" : response.message,
+      };
+    } catch (error) {
+      return {
+        connected: false,
+        responseTime: null,
+        server: this.baseURL,
+        message: error.message,
+      };
+    }
   }
 }
 

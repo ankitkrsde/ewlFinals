@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef } from "react";
 import { api } from "../utils/app";
+import Image from "next/image";
 
 export default function AvatarUpload({
   currentAvatar,
@@ -151,8 +152,10 @@ export default function AvatarUpload({
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
             </div>
           ) : (
-            <img
+            <Image
               src={displayAvatar}
+              width={100}
+              height={100}
               alt="Profile avatar"
               className="w-full h-full object-cover"
               onError={(e) => {

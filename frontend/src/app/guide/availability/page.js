@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 export default function GuideAvailabilityPage() {
@@ -30,21 +30,9 @@ export default function GuideAvailabilityPage() {
     "18:00",
   ];
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const user = JSON.parse(localStorage.getItem("user"));
-
-    if (!token || user?.role !== "guide") {
-      router.push("/auth/login");
-      return;
-    }
-
-    fetchAvailability(token);
-  }, []);
-
-  const fetchAvailability = async (token) => {
+   const fetchAvailability = useCallback(async (token) => {
     try {
-      const response = await fetch("http://localhost:5000/api/guides/me", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/guides/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -57,7 +45,19 @@ export default function GuideAvailabilityPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    if (!token || user?.role !== "guide") {
+      router.push("/auth/login");
+      return;
+    }
+
+    fetchAvailability(token);
+  }, [router, fetchAvailability]);
 
   const toggleTimeSlot = (day, time) => {
     setAvailability((prev) => {
