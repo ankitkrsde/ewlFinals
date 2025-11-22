@@ -11,41 +11,43 @@ const compression = require("compression");
 // Load env vars
 dotenv.config();
 
-// Connect to database
-connectDB();
+// Enhanced database connection with better error handling
+const connectDBWithRetry = async () => {
+  try {
+    await connectDB();
+    console.log("✅ MongoDB connected successfully");
+  } catch (error) {
+    console.error("❌ MongoDB connection failed:", error.message);
+    console.log("🔄 Retrying connection in 5 seconds...");
+    setTimeout(connectDBWithRetry, 5000);
+  }
+};
+
+connectDBWithRetry();
 
 const app = express();
 const server = http.createServer(app);
 
-// Enable gzip compression
+// Enable gzip compression for responses
 app.use(compression());
 
-// ✅ PRODUCTION CORS Configuration
+// Enhanced CORS configuration for production
 const allowedOrigins = [
-  process.env.CLIENT_URL,
-  process.env.FRONTEND_URL,
-  "http://localhost:3000",
-  "https://*.vercel.app", // Allow all Vercel deployments
-].filter(Boolean);
+  process.env.CLIENT_URL || "http://localhost:3000",
+  "https://*.vercel.app",
+  "https://explore-with-locals.vercel.app", // Your actual frontend
+  "https://explore-with-locals-frontend.vercel.app", // Common naming pattern
+];
 
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
 
-    // Check if origin is in allowed list or is a subdomain of allowed
-    const isAllowed = allowedOrigins.some((allowed) => {
-      if (allowed.includes("*")) {
-        const domain = allowed.replace("*.", "");
-        return origin.endsWith(domain);
-      }
-      return origin === allowed;
-    });
-
-    if (isAllowed) {
+    if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      console.log("🚫 CORS blocked for origin:", origin);
+      console.log("🚫 Blocked by CORS:", origin);
       callback(new Error("Not allowed by CORS"));
     }
   },
@@ -57,40 +59,45 @@ const corsOptions = {
     "x-auth-token",
     "X-Requested-With",
   ],
-  exposedHeaders: ["Authorization"],
 };
 
 app.use(cors(corsOptions));
+
+// Handle preflight requests explicitly
 app.options("*", cors(corsOptions));
 
 // Body parser middleware
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// Socket.io with production CORS
+// Socket.io configuration
 const io = socketio(server, {
   cors: corsOptions,
   transports: ["websocket", "polling"],
 });
 
-// Static files
+// Serve static files
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-console.log("🚀 Production server starting...");
-console.log("✅ CORS enabled for:", allowedOrigins);
+// Add request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
+});
 
-// Socket.io setup (keep your existing code)
+// Socket.io for real-time messaging
 io.on("connection", (socket) => {
   console.log("New WebSocket connection");
   // ... your existing socket code
 });
 
+// Make io accessible to our router
 app.use((req, res, next) => {
   req.io = io;
   next();
 });
 
-// Import and use routes
+// Import routes
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
 const guideRoutes = require("./routes/guides");
@@ -99,6 +106,7 @@ const reviewRoutes = require("./routes/reviews");
 const messageRoutes = require("./routes/messages");
 const adminRoutes = require("./routes/admin");
 
+// Use routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/guides", guideRoutes);
@@ -107,13 +115,37 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/admin", adminRoutes);
 
-// Health check endpoint
-app.get("/api/health", (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "Explore with Locals Backend is running in production",
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV,
+// Enhanced health check with DB status
+app.get("/api/health", async (req, res) => {
+  try {
+    const dbStatus =
+      mongoose.connection.readyState === 1 ? "connected" : "disconnected";
+
+    res.status(200).json({
+      success: true,
+      message: "Server is running",
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV,
+      database: dbStatus,
+      clientUrl: process.env.CLIENT_URL,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Health check failed",
+      error: error.message,
+    });
+  }
+});
+
+// Debug endpoint to check environment variables (remove in production if needed)
+app.get("/api/debug", (req, res) => {
+  res.json({
+    node_env: process.env.NODE_ENV,
+    client_url: process.env.CLIENT_URL,
+    db_connected: mongoose.connection.readyState === 1,
+    has_jwt_secret: !!process.env.JWT_SECRET,
+    has_mongodb_uri: !!process.env.MONGODB_URI,
   });
 });
 
@@ -124,21 +156,15 @@ app.get("/", (req, res) => {
     message: "Explore with Locals Backend API",
     version: "1.0.0",
     environment: process.env.NODE_ENV,
-    endpoints: {
-      auth: "/api/auth",
-      users: "/api/users",
-      guides: "/api/guides",
-      bookings: "/api/bookings",
-      reviews: "/api/reviews",
-      health: "/api/health",
-    },
+    database:
+      mongoose.connection.readyState === 1 ? "connected" : "disconnected",
   });
 });
 
-// Error handler
+// Error handler middleware
 app.use(errorHandler);
 
-// 404 handler
+// Handle 404 routes
 app.use("*", (req, res) => {
   res.status(404).json({
     success: false,
@@ -148,15 +174,32 @@ app.use("*", (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-server.listen(PORT, () => {
-  console.log(`🎉 Production server running on port ${PORT}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
-  console.log(`✅ CORS enabled for: ${allowedOrigins.join(", ")}`);
-});
+// For Vercel, we need to export the app
+if (process.env.NODE_ENV === "production") {
+  module.exports = app;
+} else {
+  server.listen(PORT, () => {
+    console.log(
+      `Server running in ${process.env.NODE_ENV} mode on port ${PORT}`
+    );
+    console.log(
+      `CORS enabled for: ${process.env.CLIENT_URL || "http://localhost:3000"}`
+    );
+    console.log(
+      `Database status: ${
+        mongoose.connection.readyState === 1 ? "connected" : "disconnected"
+      }`
+    );
+  });
+}
 
 process.on("unhandledRejection", (err, promise) => {
-  console.log(`❌ Unhandled Rejection: ${err.message}`);
-  server.close(() => {
+  console.log(`Unhandled Rejection: ${err.message}`);
+  if (server) {
+    server.close(() => {
+      process.exit(1);
+    });
+  } else {
     process.exit(1);
-  });
+  }
 });
