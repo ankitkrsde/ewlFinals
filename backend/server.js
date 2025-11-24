@@ -29,88 +29,82 @@ connectDBWithRetry();
 const app = express();
 const server = http.createServer(app);
 
-// Enable gzip compression for responses
-app.use(compression());
+// ========== AGGRESSIVE CORS FIX ==========
+// Handle CORS at the very top - before any other middleware
 
-// Enhanced CORS configuration for production
-const allowedOrigins = [
-  "https://explorewithlocals.vercel.app", // ✅ YOUR ACTUAL FRONTEND DOMAIN
-  "https://ewlfinals-production.up.railway.app", // ✅ YOUR BACKEND DOMAIN
-  "http://localhost:3000",
-  "http://localhost:5000",
-];
+// Option 1: Simple CORS for all origins (temporary fix)
+app.use(
+  cors({
+    origin: true, // Allow all origins temporarily
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "x-auth-token",
+      "X-Requested-With",
+      "Accept",
+    ],
+  })
+);
 
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-
-    // More flexible matching for Vercel domains
-    if (
-      allowedOrigins.some((allowedOrigin) => {
-        return (
-          origin === allowedOrigin ||
-          origin.includes(".vercel.app") || // Allow all Vercel subdomains
-          origin.includes("localhost")
-        ); // Allow local development
-      })
-    ) {
-      callback(null, true);
-    } else {
-      console.log("🚫 Blocked by CORS:", origin);
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-  allowedHeaders: [
-    "Content-Type",
-    "Authorization",
-    "x-auth-token",
-    "X-Requested-With",
-    "Accept",
-  ],
-  exposedHeaders: ["x-auth-token"],
-};
-
-app.use(cors(corsOptions));
-
-// Handle preflight requests explicitly - IMPORTANT FIX
-app.options("*", cors(corsOptions));
-
-// Add manual CORS middleware as backup
+// Option 2: Manual CORS headers (more control)
 app.use((req, res, next) => {
+  // Allow specific origins
+  const allowedOrigins = [
+    "https://explorewithlocals.vercel.app",
+    "https://ewlfinals-production.up.railway.app",
+    "http://localhost:3000",
+    "http://localhost:5000",
+  ];
+
   const origin = req.headers.origin;
 
-  // Allow all Vercel domains and your specific domains
-  if (
-    origin &&
-    (origin.includes("vercel.app") ||
-      origin.includes("localhost") ||
-      origin === "https://explorewithlocals.vercel.app" ||
-      origin === "https://ewlfinals-production.up.railway.app")
-  ) {
-    res.header("Access-Control-Allow-Origin", origin);
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  } else {
+    // Allow any origin for debugging (remove in production)
+    res.setHeader("Access-Control-Allow-Origin", "*");
   }
 
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+  );
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, x-auth-token, X-Requested-With, Accept, Origin"
+  );
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Expose-Headers", "x-auth-token");
+
+  // Handle preflight requests
+  if (req.method === "OPTIONS") {
+    console.log("🛫 Handling preflight request for:", req.url);
+    return res.status(200).end();
+  }
+
+  next();
+});
+
+// Handle preflight for all routes
+app.options("*", (req, res) => {
+  console.log("🛫 Preflight request for:", req.url);
+  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
   res.header(
     "Access-Control-Allow-Methods",
     "GET, POST, PUT, DELETE, OPTIONS, PATCH"
   );
   res.header(
     "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, x-auth-token, X-Requested-With, Accept"
+    "Content-Type, Authorization, x-auth-token, X-Requested-With, Accept, Origin"
   );
   res.header("Access-Control-Allow-Credentials", "true");
-  res.header("Access-Control-Expose-Headers", "x-auth-token");
-
-  // Handle preflight requests
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
-  next();
+  res.status(200).end();
 });
+
+// Enable gzip compression for responses
+app.use(compression());
 
 // Body parser middleware
 app.use(express.json({ limit: "10mb" }));
@@ -118,7 +112,11 @@ app.use(express.urlencoded({ extended: true }));
 
 // Socket.io configuration
 const io = socketio(server, {
-  cors: corsOptions,
+  cors: {
+    origin: true, // Allow all origins
+    credentials: true,
+    methods: ["GET", "POST"],
+  },
   transports: ["websocket", "polling"],
 });
 
@@ -127,7 +125,11 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Add request logging middleware
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  console.log(
+    `${new Date().toISOString()} - ${req.method} ${req.url} - Origin: ${
+      req.headers.origin
+    }`
+  );
   next();
 });
 
@@ -172,17 +174,16 @@ app.get("/api/test-cors", (req, res) => {
     success: true,
     message: "CORS is working!",
     timestamp: new Date().toISOString(),
-    allowedOrigins: allowedOrigins,
+    origin: req.headers.origin,
+    method: req.method,
   });
 });
 
-app.get("/api/test-registration", (req, res) => {
-  res.json({
-    success: true,
-    message: "Registration endpoint is accessible",
-    method: "POST",
-    requiredFields: ["name", "email", "password", "role"],
-  });
+app.options("/api/test-cors", (req, res) => {
+  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.header("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.status(200).end();
 });
 
 // Import routes
@@ -217,7 +218,7 @@ app.get("/api/health", async (req, res) => {
       database: dbStatus,
       clientUrl: process.env.CLIENT_URL,
       corsEnabled: true,
-      allowedOrigins: allowedOrigins,
+      origin: req.headers.origin,
     });
   } catch (error) {
     res.status(500).json({
@@ -228,20 +229,10 @@ app.get("/api/health", async (req, res) => {
   }
 });
 
-// Debug endpoint to check environment variables (remove in production if needed)
-app.get("/api/debug", (req, res) => {
-  res.json({
-    node_env: process.env.NODE_ENV,
-    client_url: process.env.CLIENT_URL,
-    db_connected: mongoose.connection.readyState === 1,
-    has_jwt_secret: !!process.env.JWT_SECRET,
-    has_mongodb_uri: !!process.env.MONGODB_URI,
-    cors_info: {
-      allowedOrigins: allowedOrigins,
-      frontend_domain: "https://explorewithlocals.vercel.app",
-      backend_domain: "https://ewlfinals-production.up.railway.app",
-    },
-  });
+app.options("/api/health", (req, res) => {
+  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.header("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.status(200).end();
 });
 
 // Root endpoint
@@ -255,7 +246,14 @@ app.get("/", (req, res) => {
       mongoose.connection.readyState === 1 ? "connected" : "disconnected",
     cors: "enabled",
     frontend_url: "https://explorewithlocals.vercel.app",
+    origin: req.headers.origin,
   });
+});
+
+app.options("/", (req, res) => {
+  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.header("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.status(200).end();
 });
 
 // Error handler middleware
@@ -271,12 +269,9 @@ app.use("*", (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-// For Railway deployment (remove Vercel-specific export)
 server.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-  console.log(
-    `CORS enabled for: ${process.env.CLIENT_URL || "http://localhost:3000"}`
-  );
+  console.log(`CORS enabled for all origins`);
   console.log(
     `Database status: ${
       mongoose.connection.readyState === 1 ? "connected" : "disconnected"
