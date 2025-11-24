@@ -29,6 +29,10 @@ connectDBWithRetry();
 const app = express();
 const server = http.createServer(app);
 
+// Railway-specific configuration
+app.set("trust proxy", 1);
+app.enable("trust proxy");
+
 // ========== AGGRESSIVE CORS FIX ==========
 // Handle CORS at the very top - before any other middleware
 
@@ -168,6 +172,23 @@ app.use((req, res, next) => {
   next();
 });
 
+// Railway health check endpoint
+app.get("/railway-health", (req, res) => {
+  res.status(200).json({
+    status: "OK",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    database:
+      mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+  });
+});
+
+app.options("/railway-health", (req, res) => {
+  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.header("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.status(200).end();
+});
+
 // Test endpoints for CORS verification
 app.get("/api/test-cors", (req, res) => {
   res.json({
@@ -269,16 +290,23 @@ app.use("*", (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-server.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-  console.log(`CORS enabled for all origins`);
+// Start server listening on all interfaces (CRITICAL FOR RAILWAY)
+server.listen(PORT, "0.0.0.0", () => {
   console.log(
-    `Database status: ${
+    `🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`
+  );
+  console.log(`🌐 CORS enabled for all origins`);
+  console.log(
+    `🗄️ Database status: ${
       mongoose.connection.readyState === 1 ? "connected" : "disconnected"
     }`
   );
-  console.log(`Frontend URL: https://explorewithlocals.vercel.app`);
-  console.log(`Backend URL: https://ewlfinals-production.up.railway.app`);
+  console.log(`📱 Frontend URL: https://explorewithlocals.vercel.app`);
+  console.log(`🔧 Backend URL: https://ewlfinals-production.up.railway.app`);
+  console.log(`📍 Listening on: 0.0.0.0:${PORT}`);
+  console.log(
+    `⚡ Railway Health: https://ewlfinals-production.up.railway.app/railway-health`
+  );
 });
 
 process.on("unhandledRejection", (err, promise) => {
