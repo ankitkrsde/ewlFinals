@@ -34,10 +34,10 @@ app.use(compression());
 
 // Enhanced CORS configuration for production
 const allowedOrigins = [
-  process.env.CLIENT_URL || "http://localhost:3000",
-  "https://*.vercel.app",
-  "https://explore-with-locals.vercel.app", // Your actual frontend
-  "https://explore-with-locals-frontend.vercel.app", // Common naming pattern
+  "https://explorewithlocals.vercel.app", // ✅ YOUR ACTUAL FRONTEND DOMAIN
+  "https://ewlfinals-production.up.railway.app", // ✅ YOUR BACKEND DOMAIN
+  "http://localhost:3000",
+  "http://localhost:5000",
 ];
 
 const corsOptions = {
@@ -45,7 +45,16 @@ const corsOptions = {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
 
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    // More flexible matching for Vercel domains
+    if (
+      allowedOrigins.some((allowedOrigin) => {
+        return (
+          origin === allowedOrigin ||
+          origin.includes(".vercel.app") || // Allow all Vercel subdomains
+          origin.includes("localhost")
+        ); // Allow local development
+      })
+    ) {
       callback(null, true);
     } else {
       console.log("🚫 Blocked by CORS:", origin);
@@ -59,13 +68,49 @@ const corsOptions = {
     "Authorization",
     "x-auth-token",
     "X-Requested-With",
+    "Accept",
   ],
+  exposedHeaders: ["x-auth-token"],
 };
 
 app.use(cors(corsOptions));
 
-// Handle preflight requests explicitly
+// Handle preflight requests explicitly - IMPORTANT FIX
 app.options("*", cors(corsOptions));
+
+// Add manual CORS middleware as backup
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+
+  // Allow all Vercel domains and your specific domains
+  if (
+    origin &&
+    (origin.includes("vercel.app") ||
+      origin.includes("localhost") ||
+      origin === "https://explorewithlocals.vercel.app" ||
+      origin === "https://ewlfinals-production.up.railway.app")
+  ) {
+    res.header("Access-Control-Allow-Origin", origin);
+  }
+
+  res.header(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+  );
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, x-auth-token, X-Requested-With, Accept"
+  );
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Access-Control-Expose-Headers", "x-auth-token");
+
+  // Handle preflight requests
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
+  next();
+});
 
 // Body parser middleware
 app.use(express.json({ limit: "10mb" }));
@@ -89,13 +134,55 @@ app.use((req, res, next) => {
 // Socket.io for real-time messaging
 io.on("connection", (socket) => {
   console.log("New WebSocket connection");
-  // ... your existing socket code
+
+  // Join user's room
+  socket.on("join", (userId) => {
+    socket.join(userId);
+    console.log(`User ${userId} joined their room`);
+  });
+
+  // Handle sending messages
+  socket.on("sendMessage", (message) => {
+    const { receiverId } = message;
+    socket.to(receiverId).emit("newMessage", message);
+  });
+
+  // Handle typing indicators
+  socket.on("typing", (data) => {
+    socket.to(data.receiverId).emit("userTyping", {
+      senderId: data.senderId,
+      isTyping: data.isTyping,
+    });
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected");
+  });
 });
 
 // Make io accessible to our router
 app.use((req, res, next) => {
   req.io = io;
   next();
+});
+
+// Test endpoints for CORS verification
+app.get("/api/test-cors", (req, res) => {
+  res.json({
+    success: true,
+    message: "CORS is working!",
+    timestamp: new Date().toISOString(),
+    allowedOrigins: allowedOrigins,
+  });
+});
+
+app.get("/api/test-registration", (req, res) => {
+  res.json({
+    success: true,
+    message: "Registration endpoint is accessible",
+    method: "POST",
+    requiredFields: ["name", "email", "password", "role"],
+  });
 });
 
 // Import routes
@@ -129,6 +216,8 @@ app.get("/api/health", async (req, res) => {
       environment: process.env.NODE_ENV,
       database: dbStatus,
       clientUrl: process.env.CLIENT_URL,
+      corsEnabled: true,
+      allowedOrigins: allowedOrigins,
     });
   } catch (error) {
     res.status(500).json({
@@ -147,6 +236,11 @@ app.get("/api/debug", (req, res) => {
     db_connected: mongoose.connection.readyState === 1,
     has_jwt_secret: !!process.env.JWT_SECRET,
     has_mongodb_uri: !!process.env.MONGODB_URI,
+    cors_info: {
+      allowedOrigins: allowedOrigins,
+      frontend_domain: "https://explorewithlocals.vercel.app",
+      backend_domain: "https://ewlfinals-production.up.railway.app",
+    },
   });
 });
 
@@ -159,6 +253,8 @@ app.get("/", (req, res) => {
     environment: process.env.NODE_ENV,
     database:
       mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+    cors: "enabled",
+    frontend_url: "https://explorewithlocals.vercel.app",
   });
 });
 
@@ -175,24 +271,20 @@ app.use("*", (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-// For Vercel, we need to export the app
-if (process.env.NODE_ENV === "production") {
-  module.exports = app;
-} else {
-  server.listen(PORT, () => {
-    console.log(
-      `Server running in ${process.env.NODE_ENV} mode on port ${PORT}`
-    );
-    console.log(
-      `CORS enabled for: ${process.env.CLIENT_URL || "http://localhost:3000"}`
-    );
-    console.log(
-      `Database status: ${
-        mongoose.connection.readyState === 1 ? "connected" : "disconnected"
-      }`
-    );
-  });
-}
+// For Railway deployment (remove Vercel-specific export)
+server.listen(PORT, () => {
+  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+  console.log(
+    `CORS enabled for: ${process.env.CLIENT_URL || "http://localhost:3000"}`
+  );
+  console.log(
+    `Database status: ${
+      mongoose.connection.readyState === 1 ? "connected" : "disconnected"
+    }`
+  );
+  console.log(`Frontend URL: https://explorewithlocals.vercel.app`);
+  console.log(`Backend URL: https://ewlfinals-production.up.railway.app`);
+});
 
 process.on("unhandledRejection", (err, promise) => {
   console.log(`Unhandled Rejection: ${err.message}`);
