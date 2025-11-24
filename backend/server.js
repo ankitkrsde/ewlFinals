@@ -33,13 +33,26 @@ const server = http.createServer(app);
 app.set("trust proxy", 1);
 app.enable("trust proxy");
 
-// ========== AGGRESSIVE CORS FIX ==========
-// Handle CORS at the very top - before any other middleware
+// ========== PROPER CORS CONFIGURATION ==========
+const allowedOrigins = [
+  "https://explorewithlocals.vercel.app",
+  "http://localhost:3000",
+  "http://localhost:5000",
+];
 
-// Option 1: Simple CORS for all origins (temporary fix)
 app.use(
   cors({
-    origin: true, // Allow all origins temporarily
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        return callback(null, true);
+      } else {
+        console.log(`🚫 CORS blocked for origin: ${origin}`);
+        return callback(new Error("Not allowed by CORS"), false);
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allowedHeaders: [
@@ -48,64 +61,10 @@ app.use(
       "x-auth-token",
       "X-Requested-With",
       "Accept",
+      "Origin",
     ],
   })
 );
-
-// Option 2: Manual CORS headers (more control)
-app.use((req, res, next) => {
-  // Allow specific origins
-  const allowedOrigins = [
-    "https://explorewithlocals.vercel.app",
-    "https://ewlfinals-production.up.railway.app",
-    "http://localhost:3000",
-    "http://localhost:5000",
-  ];
-
-  const origin = req.headers.origin;
-
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-  } else {
-    // Allow any origin for debugging (remove in production)
-    res.setHeader("Access-Control-Allow-Origin", "*");
-  }
-
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-  );
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, x-auth-token, X-Requested-With, Accept, Origin"
-  );
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader("Access-Control-Expose-Headers", "x-auth-token");
-
-  // Handle preflight requests
-  if (req.method === "OPTIONS") {
-    console.log("🛫 Handling preflight request for:", req.url);
-    return res.status(200).end();
-  }
-
-  next();
-});
-
-// Handle preflight for all routes
-app.options("*", (req, res) => {
-  console.log("🛫 Preflight request for:", req.url);
-  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
-  res.header(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-  );
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, x-auth-token, X-Requested-With, Accept, Origin"
-  );
-  res.header("Access-Control-Allow-Credentials", "true");
-  res.status(200).end();
-});
 
 // Enable gzip compression for responses
 app.use(compression());
@@ -117,7 +76,7 @@ app.use(express.urlencoded({ extended: true }));
 // Socket.io configuration
 const io = socketio(server, {
   cors: {
-    origin: true, // Allow all origins
+    origin: allowedOrigins,
     credentials: true,
     methods: ["GET", "POST"],
   },
@@ -183,12 +142,6 @@ app.get("/railway-health", (req, res) => {
   });
 });
 
-app.options("/railway-health", (req, res) => {
-  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
-  res.header("Access-Control-Allow-Methods", "GET, OPTIONS");
-  res.status(200).end();
-});
-
 // Test endpoints for CORS verification
 app.get("/api/test-cors", (req, res) => {
   res.json({
@@ -197,14 +150,8 @@ app.get("/api/test-cors", (req, res) => {
     timestamp: new Date().toISOString(),
     origin: req.headers.origin,
     method: req.method,
+    allowedOrigins: allowedOrigins,
   });
-});
-
-app.options("/api/test-cors", (req, res) => {
-  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
-  res.header("Access-Control-Allow-Methods", "GET, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.status(200).end();
 });
 
 // Import routes
@@ -239,6 +186,7 @@ app.get("/api/health", async (req, res) => {
       database: dbStatus,
       clientUrl: process.env.CLIENT_URL,
       corsEnabled: true,
+      allowedOrigins: allowedOrigins,
       origin: req.headers.origin,
     });
   } catch (error) {
@@ -248,12 +196,6 @@ app.get("/api/health", async (req, res) => {
       error: error.message,
     });
   }
-});
-
-app.options("/api/health", (req, res) => {
-  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
-  res.header("Access-Control-Allow-Methods", "GET, OPTIONS");
-  res.status(200).end();
 });
 
 // Root endpoint
@@ -266,15 +208,10 @@ app.get("/", (req, res) => {
     database:
       mongoose.connection.readyState === 1 ? "connected" : "disconnected",
     cors: "enabled",
+    allowedOrigins: allowedOrigins,
     frontend_url: "https://explorewithlocals.vercel.app",
     origin: req.headers.origin,
   });
-});
-
-app.options("/", (req, res) => {
-  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
-  res.header("Access-Control-Allow-Methods", "GET, OPTIONS");
-  res.status(200).end();
 });
 
 // Error handler middleware
@@ -285,6 +222,8 @@ app.use("*", (req, res) => {
   res.status(404).json({
     success: false,
     message: "Route not found",
+    path: req.originalUrl,
+    method: req.method,
   });
 });
 
@@ -295,7 +234,7 @@ server.listen(PORT, "0.0.0.0", () => {
   console.log(
     `🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`
   );
-  console.log(`🌐 CORS enabled for all origins`);
+  console.log(`🌐 CORS enabled for:`, allowedOrigins);
   console.log(
     `🗄️ Database status: ${
       mongoose.connection.readyState === 1 ? "connected" : "disconnected"
@@ -304,9 +243,6 @@ server.listen(PORT, "0.0.0.0", () => {
   console.log(`📱 Frontend URL: https://explorewithlocals.vercel.app`);
   console.log(`🔧 Backend URL: https://ewlfinals-production.up.railway.app`);
   console.log(`📍 Listening on: 0.0.0.0:${PORT}`);
-  console.log(
-    `⚡ Railway Health: https://ewlfinals-production.up.railway.app/railway-health`
-  );
 });
 
 process.on("unhandledRejection", (err, promise) => {
