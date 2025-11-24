@@ -3,6 +3,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import ReviewForm from "../components/reviews/ReviewForm";
 
+// Add this at the top - API base URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
 export default function BookingsPage() {
   const [bookings, setBookings] = useState([]);
   const [filter, setFilter] = useState("all");
@@ -30,7 +33,8 @@ export default function BookingsPage() {
 
   const fetchBookings = async (token) => {
     try {
-      const response = await fetch("http://localhost:5000/api/bookings", {
+      const response = await fetch(`${API_BASE_URL}/api/bookings`, {
+        // ✅ FIXED
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -47,7 +51,8 @@ export default function BookingsPage() {
 
   const fetchUserReviews = async (token) => {
     try {
-      const response = await fetch("http://localhost:5000/api/reviews/me", {
+      const response = await fetch(`${API_BASE_URL}/api/reviews/me`, {
+        // ✅ FIXED
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -129,7 +134,7 @@ export default function BookingsPage() {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `http://localhost:5000/api/bookings/${bookingId}/status`,
+        `${API_BASE_URL}/api/bookings/${bookingId}/status`, // ✅ FIXED
         {
           method: "PUT",
           headers: {

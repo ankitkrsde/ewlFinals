@@ -5,6 +5,7 @@ import { debounce } from "lodash";
 import Image from "next/image";
 import AvailabilityBadge from "@/app/components/guides/AvailabilityBadge";
 import { useAuth } from "@/app/components/AuthProvider";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function GuideSearchPage() {
   const [guides, setGuides] = useState([]);
@@ -23,67 +24,78 @@ export default function GuideSearchPage() {
   const [sortBy, setSortBy] = useState("rating");
   const { user } = useAuth();
 
-  const fetchGuides = useCallback(async (searchFilters = {}) => {
-    setLoading(true);
-    try {
-      const queryParams = new URLSearchParams({
-        ...searchFilters,
-        sort: sortBy === "rating" ? "-rating.average" : "hourlyRate",
-      }).toString();
+  const fetchGuides = useCallback(
+    async (searchFilters = {}) => {
+      setLoading(true);
+      try {
+        const queryParams = new URLSearchParams({
+          ...searchFilters,
+          sort: sortBy === "rating" ? "-rating.average" : "hourlyRate",
+        }).toString();
 
-      console.log(
-        "Fetching from:",
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/guides?${queryParams}`
-      );
+        console.log(
+          "Fetching from:",
+          `${API_BASE_URL}/api/guides?${queryParams}`
+        );
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/guides?${queryParams}`
-      );
-      const data = await response.json();
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/guides?${queryParams}`
+        );
+        const data = await response.json();
 
-      console.log("API Response:", data);
+        console.log("API Response:", data);
 
-      if (data.success) {
-        setGuides(data.data || []);
-        console.log("Guides set:", data.data?.length || 0, "guides");
-      } else {
-        setError("Failed to fetch guides");
-        console.error("API Error:", data.message);
+        if (data.success) {
+          setGuides(data.data || []);
+          console.log("Guides set:", data.data?.length || 0, "guides");
+        } else {
+          setError("Failed to fetch guides");
+          console.error("API Error:", data.message);
+        }
+      } catch (error) {
+        setError("Network error. Please try again.");
+        console.error("Fetch Error:", error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      setError("Network error. Please try again.");
-      console.error("Fetch Error:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [sortBy]);
+    },
+    [sortBy]
+  );
 
   // FIXED: Use useMemo for debounced function with explicit dependencies
-  const debouncedSearch = useMemo(() => 
-    debounce((searchFilters) => {
-      fetchGuides(searchFilters);
-    }, 500),
-  [fetchGuides]);
+  const debouncedSearch = useMemo(
+    () =>
+      debounce((searchFilters) => {
+        fetchGuides(searchFilters);
+      }, 500),
+    [fetchGuides]
+  );
 
-  const handleFilterChange = useCallback((key, value) => {
-    const newFilters = { ...filters, [key]: value };
-    setFilters(newFilters);
+  const handleFilterChange = useCallback(
+    (key, value) => {
+      const newFilters = { ...filters, [key]: value };
+      setFilters(newFilters);
 
-    // Remove empty filters
-    const cleanFilters = Object.fromEntries(
-      Object.entries(newFilters).filter(([_, v]) => v !== "")
-    );
+      // Remove empty filters
+      const cleanFilters = Object.fromEntries(
+        Object.entries(newFilters).filter(([_, v]) => v !== "")
+      );
 
-    debouncedSearch(cleanFilters);
-  }, [filters, debouncedSearch]);
+      debouncedSearch(cleanFilters);
+    },
+    [filters, debouncedSearch]
+  );
 
-  const handleSortChange = useCallback((value) => {
-    setSortBy(value);
-    const cleanFilters = Object.fromEntries(
-      Object.entries(filters).filter(([_, v]) => v !== "")
-    );
-    fetchGuides(cleanFilters);
-  }, [filters, fetchGuides]);
+  const handleSortChange = useCallback(
+    (value) => {
+      setSortBy(value);
+      const cleanFilters = Object.fromEntries(
+        Object.entries(filters).filter(([_, v]) => v !== "")
+      );
+      fetchGuides(cleanFilters);
+    },
+    [filters, fetchGuides]
+  );
 
   const clearFilters = useCallback(() => {
     setFilters({
@@ -314,7 +326,7 @@ function GuideCard({ guide, currentUser }) {
     if (!avatarPath) return "/images/default-avatar.jpg";
     if (avatarPath.startsWith("http")) return avatarPath;
     if (avatarPath.startsWith("/uploads/")) {
-      return `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}${avatarPath}`;
+      return `${API_BASE_URL}${avatarPath}`;
     }
     return "/images/default-avatar.jpg";
   };

@@ -2,6 +2,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
 export default function GuideAvailabilityPage() {
   const [availability, setAvailability] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,11 +32,14 @@ export default function GuideAvailabilityPage() {
     "18:00",
   ];
 
-   const fetchAvailability = useCallback(async (token) => {
+  const fetchAvailability = useCallback(async (token) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/guides/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/guides/me`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       const data = await response.json();
 
       if (data.success) {
@@ -117,17 +122,14 @@ export default function GuideAvailabilityPage() {
     setSaving(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(
-        "http://localhost:5000/api/guides/availability",
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ availability }),
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/api/guides/availability`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ availability }),
+      });
 
       const data = await response.json();
 

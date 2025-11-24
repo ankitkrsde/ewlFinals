@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function ChatPage() {
   const params = useParams();
@@ -20,33 +21,36 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages]);
 
-  const fetchMessages = useCallback(async (token) => {
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/messages/${params.chatId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      const data = await response.json();
+  const fetchMessages = useCallback(
+    async (token) => {
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/api/messages/${params.chatId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        const data = await response.json();
 
-      if (data.success) {
-        setMessages(data.data || []);
-        if (data.data.length > 0) {
-          const firstMessage = data.data[0];
-          const otherUser =
-            firstMessage.senderId._id === params.chatId
-              ? firstMessage.senderId
-              : firstMessage.receiverId;
-          setOtherUser(otherUser);
+        if (data.success) {
+          setMessages(data.data || []);
+          if (data.data.length > 0) {
+            const firstMessage = data.data[0];
+            const otherUser =
+              firstMessage.senderId._id === params.chatId
+                ? firstMessage.senderId
+                : firstMessage.receiverId;
+            setOtherUser(otherUser);
+          }
         }
+      } catch (error) {
+        console.error("Error fetching messages:", error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error fetching messages:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [params.chatId]);
+    },
+    [params.chatId]
+  );
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -63,7 +67,7 @@ export default function ChatPage() {
 
     const token = localStorage.getItem("token");
     try {
-      const response = await fetch("http://localhost:5000/api/messages", {
+      const response = await fetch(`${API_BASE_URL}/api/messages`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

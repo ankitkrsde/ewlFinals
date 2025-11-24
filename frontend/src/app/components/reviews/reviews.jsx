@@ -7,6 +7,8 @@ import { Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
 export default function Reviews() {
   const [reviewsData, setReviewsData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,9 +21,7 @@ export default function Reviews() {
         console.log("🔄 Fetching reviews from API...");
         setDebugInfo("Fetching reviews...");
 
-        const response = await fetch(
-          "http://localhost:5000/api/reviews/featured"
-        );
+        const response = await fetch(`${API_BASE_URL}/api/reviews/featured`);
 
         console.log("📊 API Response status:", response.status);
         const data = await response.json();

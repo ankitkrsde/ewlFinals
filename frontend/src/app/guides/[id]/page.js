@@ -3,12 +3,13 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { useAuth } from "@/app/components/AuthProvider"; 
+import { useAuth } from "@/app/components/AuthProvider";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function GuideProfilePage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth(); 
+  const { user } = useAuth();
   const [guide, setGuide] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [showBookingForm, setShowBookingForm] = useState(false);
@@ -27,9 +28,9 @@ export default function GuideProfilePage() {
     show: false,
     message: "",
     type: "",
-  }); 
+  });
 
-   const fetchGuideData = useCallback(async () => {
+  const fetchGuideData = useCallback(async () => {
     try {
       console.log("🌐 Fetching guide data for ID:", params.id);
 
@@ -72,8 +73,6 @@ export default function GuideProfilePage() {
     }, 5000);
   };
 
-  
-
   const handleBooking = async (e) => {
     e.preventDefault();
     setBookingLoading(true);
@@ -89,7 +88,7 @@ export default function GuideProfilePage() {
     }
 
     try {
-      const response = await fetch("http://localhost:5000/api/bookings", {
+      const response = await fetch(`${API_BASE_URL}/api/bookings`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
