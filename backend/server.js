@@ -7,6 +7,7 @@ const socketio = require("socket.io");
 const connectDB = require("./config/database");
 const errorHandler = require("./middleware/error");
 const compression = require("compression");
+const mongoose = require("mongoose");
 
 // Load env vars
 dotenv.config();
