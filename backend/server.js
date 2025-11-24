@@ -33,20 +33,44 @@ const server = http.createServer(app);
 app.set("trust proxy", 1);
 app.enable("trust proxy");
 
-// ========== GUARANTEED CORS FIX ==========
-// Apply CORS to ALL requests at the very top
+// ========== NUCLEAR CORS FIX ==========
+// Apply CORS to EVERY request manually
 
-// 1. First, handle OPTIONS (preflight) for ALL routes
-app.options("*", cors());
+app.use((req, res, next) => {
+  console.log(
+    `🌐 CORS Middleware - ${req.method} ${req.url} - Origin: ${req.headers.origin}`
+  );
 
-// 2. Apply CORS middleware to ALL routes
+  // ALLOW ALL ORIGINS TEMPORARILY
+  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.header(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
+  );
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, x-auth-token, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
+  );
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Access-Control-Expose-Headers", "x-auth-token");
+  res.header("Access-Control-Max-Age", "86400"); // 24 hours
+
+  // Handle preflight requests
+  if (req.method === "OPTIONS") {
+    console.log("🛫 Preflight request handled successfully");
+    return res.status(200).end();
+  }
+
+  next();
+});
+
+// Also use cors package as backup
 app.use(
   cors({
-    origin: [
-      "https://explorewithlocals.vercel.app",
-      "http://localhost:3000",
-      "http://localhost:5000",
-    ],
+    origin: function (origin, callback) {
+      // Allow ALL origins for now
+      callback(null, true);
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allowedHeaders: [
@@ -62,39 +86,6 @@ app.use(
   })
 );
 
-// 3. Manual CORS headers as backup (remove if not needed after testing)
-app.use((req, res, next) => {
-  const allowedOrigins = [
-    "https://explorewithlocals.vercel.app",
-    "http://localhost:3000",
-    "http://localhost:5000",
-  ];
-
-  const origin = req.headers.origin;
-
-  if (allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin);
-  }
-
-  res.header(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-  );
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, x-auth-token, X-Requested-With, Accept, Origin"
-  );
-  res.header("Access-Control-Allow-Credentials", "true");
-
-  // Handle preflight
-  if (req.method === "OPTIONS") {
-    console.log("🛫 Preflight request handled for:", req.url);
-    return res.status(200).end();
-  }
-
-  next();
-});
-
 // Enable gzip compression for responses
 app.use(compression());
 
@@ -105,11 +96,7 @@ app.use(express.urlencoded({ extended: true }));
 // Socket.io configuration
 const io = socketio(server, {
   cors: {
-    origin: [
-      "https://explorewithlocals.vercel.app",
-      "http://localhost:3000",
-      "http://localhost:5000",
-    ],
+    origin: "*",
     credentials: true,
     methods: ["GET", "POST"],
   },
@@ -132,27 +119,14 @@ app.use((req, res, next) => {
 // Socket.io for real-time messaging
 io.on("connection", (socket) => {
   console.log("New WebSocket connection");
-
-  // Join user's room
   socket.on("join", (userId) => {
     socket.join(userId);
     console.log(`User ${userId} joined their room`);
   });
-
-  // Handle sending messages
   socket.on("sendMessage", (message) => {
     const { receiverId } = message;
     socket.to(receiverId).emit("newMessage", message);
   });
-
-  // Handle typing indicators
-  socket.on("typing", (data) => {
-    socket.to(data.receiverId).emit("userTyping", {
-      senderId: data.senderId,
-      isTyping: data.isTyping,
-    });
-  });
-
   socket.on("disconnect", () => {
     console.log("User disconnected");
   });
@@ -168,19 +142,26 @@ app.use((req, res, next) => {
 app.get("/api/cors-test", (req, res) => {
   res.json({
     success: true,
-    message: "CORS is working!",
+    message: "CORS IS WORKING!",
     origin: req.headers.origin,
     timestamp: new Date().toISOString(),
+    headers: req.headers,
   });
 });
 
 app.post("/api/cors-test", (req, res) => {
   res.json({
     success: true,
-    message: "POST CORS is working!",
+    message: "POST CORS IS WORKING!",
     origin: req.headers.origin,
     timestamp: new Date().toISOString(),
+    body: req.body,
   });
+});
+
+app.options("/api/cors-test", (req, res) => {
+  console.log("CORS test preflight");
+  res.status(200).end();
 });
 
 // Import routes
@@ -206,14 +187,13 @@ app.get("/api/health", async (req, res) => {
   try {
     const dbStatus =
       mongoose.connection.readyState === 1 ? "connected" : "disconnected";
-
     res.status(200).json({
       success: true,
       message: "Server is running",
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV,
       database: dbStatus,
-      cors: "enabled",
+      cors: "ENABLED - NUCLEAR MODE",
       origin: req.headers.origin,
     });
   } catch (error) {
@@ -229,12 +209,12 @@ app.get("/api/health", async (req, res) => {
 app.get("/", (req, res) => {
   res.json({
     success: true,
-    message: "Explore with Locals Backend API",
+    message: "Explore with Locals Backend API - CORS NUCLEAR MODE",
     version: "1.0.0",
     environment: process.env.NODE_ENV,
     database:
       mongoose.connection.readyState === 1 ? "connected" : "disconnected",
-    cors: "enabled",
+    cors: "ENABLED - ALL ORIGINS ALLOWED",
     frontend_url: "https://explorewithlocals.vercel.app",
     origin: req.headers.origin,
   });
@@ -260,22 +240,19 @@ server.listen(PORT, "0.0.0.0", () => {
   console.log(
     `🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`
   );
-  console.log(`🌐 CORS enabled for: https://explorewithlocals.vercel.app`);
+  console.log(`🌐 CORS: NUCLEAR MODE - ALL ORIGINS ALLOWED`);
   console.log(
     `🗄️ Database status: ${
       mongoose.connection.readyState === 1 ? "connected" : "disconnected"
     }`
   );
   console.log(`📍 Listening on: 0.0.0.0:${PORT}`);
+  console.log(
+    `🔧 Test CORS: https://ewlfinals-production.up.railway.app/api/cors-test`
+  );
 });
 
 process.on("unhandledRejection", (err, promise) => {
   console.log(`Unhandled Rejection: ${err.message}`);
-  if (server) {
-    server.close(() => {
-      process.exit(1);
-    });
-  } else {
-    process.exit(1);
-  }
+  process.exit(1);
 });
