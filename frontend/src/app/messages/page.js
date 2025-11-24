@@ -2,6 +2,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
 export default function MessagesPage() {
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
@@ -10,10 +12,10 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-    const fetchConversations = useCallback(async (token) => {
+  const fetchConversations = useCallback(async (token) => {
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/messages/conversations`,
+        `${API_BASE_URL}/api/messages/conversations`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -42,12 +44,11 @@ export default function MessagesPage() {
     fetchConversations(token);
   }, [router, fetchConversations]);
 
-
   const selectConversation = async (conversation, token) => {
     setSelectedConversation(conversation);
     try {
       const response = await fetch(
-        `http://localhost:5000/api/messages/${conversation._id}`,
+        `${API_BASE_URL}/api/messages/${conversation._id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -68,7 +69,7 @@ export default function MessagesPage() {
 
     const token = localStorage.getItem("token");
     try {
-      const response = await fetch("http://localhost:5000/api/messages", {
+      const response = await fetch(`${API_BASE_URL}/api/messages`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

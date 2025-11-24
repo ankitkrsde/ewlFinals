@@ -5,6 +5,9 @@ import guide1 from "../../../public/guide1.jpg";
 import { PiHandTapLight } from "react-icons/pi";
 import { useAuth } from "./AuthProvider";
 
+// Add this at the top - API base URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
 export default function Guide({ user }) {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -77,7 +80,8 @@ export default function Guide({ user }) {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/guides", {
+      const response = await fetch(`${API_BASE_URL}/api/guides`, {
+        // ✅ FIXED
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function GuideBookingsPage() {
   const [bookings, setBookings] = useState([]);
@@ -17,9 +18,12 @@ export default function GuideBookingsPage() {
 
   const fetchBookings = useCallback(async (token) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/bookings`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/bookings`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       const data = await response.json();
 
       if (data.success) {
@@ -68,7 +72,7 @@ export default function GuideBookingsPage() {
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/bookings/${bookingId}/status`,
+        `${API_BASE_URL}/api/bookings/${bookingId}/status`,
         {
           method: "PUT",
           headers: {

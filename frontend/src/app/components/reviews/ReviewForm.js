@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { IoIosStar } from "react-icons/io";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
 export default function ReviewForm({
   bookingId,
   guideId,
@@ -43,7 +45,7 @@ export default function ReviewForm({
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/reviews", {
+      const response = await fetch(`${API_BASE_URL}/api/reviews`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -23,7 +23,7 @@ const nextConfig = {
   },
   // Add images configuration if you're using next/image
   images: {
-    domains: ["localhost", "your-backend-domain.vercel.app"],
+    domains: ["localhost", "ewlfinals-production.up.railway.app"],
     unoptimized: true, // Required for static exports if needed
   },
   // Environment variables that will be available at build time

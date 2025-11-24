@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import AuthDebugger from "@/app/debug/AuthDebugger";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function GuideProfilePage() {
   const [profile, setProfile] = useState(null);
@@ -10,9 +11,9 @@ export default function GuideProfilePage() {
   const [saving, setSaving] = useState(false);
   const router = useRouter();
 
-    const fetchProfile = useCallback(async (token) => {
+  const fetchProfile = useCallback(async (token) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/guides/me`, {
+      const response = await fetch(`${API_BASE_URL}/api/guides`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();

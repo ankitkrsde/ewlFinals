@@ -8,6 +8,8 @@ import { IoIosStarHalf } from "react-icons/io";
 import { CiLocationOn } from "react-icons/ci";
 import { CiGlobe } from "react-icons/ci";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
 export default function LocalsSection() {
   const [guides, setGuides] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,7 +27,7 @@ export default function LocalsSection() {
 
       // Remove filters to see ALL guides
       const response = await fetch(
-        "http://localhost:5000/api/guides?includePending=true"
+        `${API_BASE_URL}/api/guides?includePending=true`
       );
       const data = await response.json();
 

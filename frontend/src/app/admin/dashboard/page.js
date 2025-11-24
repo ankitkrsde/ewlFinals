@@ -1,9 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import AdminRoute from "../../components/AdminRoute"; // Add this import
+import AdminRoute from "../../components/AdminRoute";
 
-// Move all your existing content to this inner component
+// Add this at the top - API base URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
 function AdminDashboardContent() {
   const [stats, setStats] = useState({});
   const [recentActivities, setRecentActivities] = useState([]);
@@ -15,23 +17,18 @@ function AdminDashboardContent() {
     const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user"));
 
-    // REMOVE THIS MANUAL CHECK - AdminRoute handles it
-    // if (!token || user?.role !== "admin") {
-    //   router.push("/auth/login");
-    //   return;
-    // }
-
     fetchDashboardData(token);
   }, []);
 
   const fetchDashboardData = async (token) => {
     try {
       const [statsResponse, verificationsResponse] = await Promise.all([
-        fetch("http://localhost:5000/api/admin/dashboard", {
+        fetch(`${API_BASE_URL}/api/admin/dashboard`, {
+          // ✅ FIXED
           headers: { Authorization: `Bearer ${token}` },
         }),
         fetch(
-          "http://localhost:5000/api/admin/verifications?status=pending&limit=5",
+          `${API_BASE_URL}/api/admin/verifications?status=pending&limit=5`, // ✅ FIXED
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -58,7 +55,7 @@ function AdminDashboardContent() {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `http://localhost:5000/api/admin/verifications/${guideId}`,
+        `${API_BASE_URL}/api/admin/verifications/${guideId}`, // ✅ FIXED
         {
           method: "PUT",
           headers: {

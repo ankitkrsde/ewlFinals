@@ -3,6 +3,9 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
+// Add this at the top - API base URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
 export default function ContactUs() {
   const [formData, setFormData] = useState({
     name: "",
@@ -26,7 +29,8 @@ export default function ContactUs() {
 
     try {
       // In a real application, you would send this to your backend API
-      const response = await fetch("http://localhost:5000/api/contact", {
+      const response = await fetch(`${API_BASE_URL}/api/contact`, {
+        // ✅ FIXED
         method: "POST",
         headers: {
           "Content-Type": "application/json",
