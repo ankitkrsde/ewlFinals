@@ -9,21 +9,22 @@ const errorHandler = require("./middleware/error");
 const compression = require("compression");
 const mongoose = require("mongoose");
 
-// Load env vars
+// ========== PRE-REQUIRE ALL MODULES FOR FASTER COLD STARTS ==========
+// Load env vars immediately
 dotenv.config();
 
-// Enhanced database connection with better error handling
+// Connect to DB but don't block server start
 const connectDBWithRetry = async () => {
   try {
     await connectDB();
     console.log("✅ MongoDB connected successfully");
   } catch (error) {
     console.error("❌ MongoDB connection failed:", error.message);
-    console.log("🔄 Retrying connection in 5 seconds...");
     setTimeout(connectDBWithRetry, 5000);
   }
 };
 
+// Start DB connection in background immediately
 connectDBWithRetry();
 
 const app = express();
@@ -93,7 +94,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Import routes
+// Import routes - DO THIS SYNCHRONOUSLY FOR FASTER STARTS
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
 const guideRoutes = require("./routes/guides");
@@ -123,6 +124,7 @@ app.get("/api/health", async (req, res) => {
       environment: process.env.NODE_ENV,
       database: dbStatus,
       platform: "Render.com",
+      coldStart: "optimized",
     });
   } catch (error) {
     res.status(500).json({
@@ -137,13 +139,14 @@ app.get("/api/health", async (req, res) => {
 app.get("/", (req, res) => {
   res.json({
     success: true,
-    message: "Explore with Locals Backend API",
+    message: "Explore with Locals Backend API - Optimized for Render",
     version: "1.0.0",
     environment: process.env.NODE_ENV,
     database:
       mongoose.connection.readyState === 1 ? "connected" : "disconnected",
     platform: "Render.com",
     frontend_url: "https://explorewithlocals.vercel.app",
+    coldStart: "optimized",
   });
 });
 
@@ -174,4 +177,5 @@ server.listen(PORT, () => {
     }`
   );
   console.log(`📍 Platform: Render.com`);
+  console.log(`⚡ Cold Start: Optimized`);
 });

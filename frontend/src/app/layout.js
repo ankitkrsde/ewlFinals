@@ -3,6 +3,7 @@ import "./globals.css";
 import Header from "./components/header";
 import Footer from "./components/footer";
 import AuthProvider from "./components/AuthProvider";
+import KeepAlive from "./components/keep-alive";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,6 +19,7 @@ export default function RootLayout({ children }) {
         <AuthProvider>
           {/* <DebugAuth /> */}
           <Header />
+          <KeepAlive />
           {children}
           <Footer />
         </AuthProvider>
