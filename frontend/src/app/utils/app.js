@@ -1,19 +1,6 @@
 // Enhanced environment detection for Vercel and production
 const getApiBaseUrl = () => {
-  // For browser environment - always use the public environment variable
-  if (typeof window !== "undefined") {
-    return process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-  }
-
-  // For server-side environment (SSR) in production
-  if (process.env.NODE_ENV === "production") {
-    return (
-      process.env.NEXT_PUBLIC_API_URL ||
-      "https://explore-with-locals-backend.vercel.app"
-    );
-  }
-
-  // For server-side environment in development
+  // For all environments - use the environment variable with localhost fallback
   return process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 };
 
