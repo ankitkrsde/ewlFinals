@@ -9,6 +9,24 @@ const errorHandler = require("./middleware/error");
 const compression = require("compression");
 const mongoose = require("mongoose");
 
+// ========== INSTANT RESPONSE OPTIMIZATION ==========
+// Pre-warm commonly used modules
+console.log("🔥 Pre-warming application...");
+
+// Pre-require all route handlers to avoid lazy loading delays
+const preWarmModules = () => {
+  require("./routes/auth");
+  require("./routes/users");
+  require("./routes/guides");
+  require("./routes/bookings");
+  require("./routes/reviews");
+  require("./routes/messages");
+  console.log("✅ All routes pre-warmed");
+};
+
+// Start pre-warming in background
+setImmediate(preWarmModules);
+
 // ========== PRE-REQUIRE ALL MODULES FOR FASTER COLD STARTS ==========
 // Load env vars immediately
 dotenv.config();

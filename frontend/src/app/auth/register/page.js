@@ -29,6 +29,7 @@ export default function RegisterPage() {
 
   useRedirectIfAuthenticated();
 
+  // In your signup component - replace the current handleSubmit
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -36,69 +37,62 @@ export default function RegisterPage() {
     setTimeoutWarning(false);
     setSuccess(false);
 
-    // Set timeout warning after 8 seconds
+    let requestCompleted = false;
+
+    // Set timeout warning after 5 seconds (sooner)
     timeoutRef.current = setTimeout(() => {
-      setTimeoutWarning(true);
-    }, 8000);
+      if (!requestCompleted) {
+        setTimeoutWarning(true);
+      }
+    }, 5000);
+
+    // Set ultimate timeout after 25 seconds
+    const ultimateTimeout = setTimeout(() => {
+      if (!requestCompleted) {
+        clearTimeout(timeoutRef.current);
+        setError(
+          "This is taking longer than expected. Your account is being created in the background. You can try logging in shortly."
+        );
+        setLoading(false);
+        requestCompleted = true;
+      }
+    }, 25000);
 
     try {
       console.log("🔄 Register: Attempting registration...");
       const data = await api.register(formData);
 
-      // Clear timeout if request succeeds
+      requestCompleted = true;
       clearTimeout(timeoutRef.current);
-
-      console.log("✅ Register: Response received", data);
+      clearTimeout(ultimateTimeout);
 
       if (data.success) {
-        console.log("✅ Register: Success, storing data...");
         setSuccess(true);
 
-        // CRITICAL: Make sure we have both token and user
         if (data.token && data.user) {
-          console.log("💾 Register: Saving to localStorage...");
-
-          // Save to localStorage FIRST
+          // Save and redirect
           if (typeof window !== "undefined") {
             localStorage.setItem("token", data.token);
             localStorage.setItem("user", JSON.stringify(data.user));
-            console.log("✅ Register: Data saved to localStorage");
-            console.log("Token saved:", data.token.substring(0, 20) + "...");
-            console.log("User saved:", data.user);
           }
 
-          // THEN call login to update AuthProvider state
-          console.log("🔄 Register: Updating AuthProvider state...");
           login(data.token, data.user);
-
-          // THEN redirect with slight delay to show success message
-          setTimeout(() => {
-            console.log("🔄 Register: Redirecting to dashboard...");
-            router.push("/dashboard");
-          }, 1000);
-        } else {
-          console.error("❌ Register: Missing token or user in response");
-          setError("Invalid response from server");
+          setTimeout(() => router.push("/dashboard"), 1000);
         }
       } else {
-        console.error("❌ Register: API returned success: false");
         setError(data.message || "Registration failed");
       }
     } catch (error) {
-      // Clear timeout if request fails
+      requestCompleted = true;
       clearTimeout(timeoutRef.current);
-      console.error("❌ Register: Error occurred", error);
+      clearTimeout(ultimateTimeout);
 
-      // Check if it's a timeout error
-      if (
-        error.message.includes("timeout") ||
-        error.message.includes("Timeout")
-      ) {
+      if (error.message.includes("timeout")) {
         setError(
-          "Server is taking longer than usual. Your account may have been created - please try logging in."
+          "Account creation is processing. Please check your email or try logging in shortly."
         );
       } else {
-        setError(error.message || "Network error. Please try again.");
+        setError(error.message || "Please try again.");
       }
     } finally {
       setLoading(false);
