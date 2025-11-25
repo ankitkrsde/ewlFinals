@@ -44,11 +44,20 @@ function ProfileContent() {
   const [success, setSuccess] = useState("");
   const [activeTab, setActiveTab] = useState("profile");
   const [guideProfileLoaded, setGuideProfileLoaded] = useState(false);
+  const [guideProfileExists, setGuideProfileExists] = useState(false);
 
-   const loadGuideProfile = useCallback(async () => {
+  const loadGuideProfile = useCallback(async () => {
     try {
       setLoading(true);
       console.log("🔄 Loading guide profile for user:", user?.id);
+
+      // Check if user is actually a guide first
+      if (user?.role !== "guide") {
+        console.log("❌ User is not a guide, skipping guide profile load");
+        setGuideProfileLoaded(false);
+        setGuideProfileExists(false);
+        return;
+      }
 
       const data = await api.getGuideProfile();
 
@@ -70,23 +79,56 @@ function ProfileContent() {
             rating: data.data.rating || { average: 0, count: 0 },
           });
           setGuideProfileLoaded(true);
+          setGuideProfileExists(true);
         } else {
           console.log(
             "ℹ️ No guide profile found - this guide needs to create their profile"
           );
           setGuideProfileLoaded(false);
+          setGuideProfileExists(false);
         }
       } else {
         console.log("❌ API returned success: false");
-        setError(data.message || "Failed to load guide profile");
+
+        // Handle specific error cases
+        if (
+          data.message?.includes("Not authorized") ||
+          data.message?.includes("not registered as a guide")
+        ) {
+          setError("Please complete your guide profile setup");
+          setGuideProfileLoaded(false);
+          setGuideProfileExists(false);
+        } else {
+          setError(data.message || "Failed to load guide profile");
+        }
       }
     } catch (error) {
       console.error("❌ Error loading guide profile:", error);
-      setError("Failed to load guide profile");
+
+      // Handle specific error cases
+      if (
+        error.message?.includes("Not authorized") ||
+        error.message?.includes("not registered as a guide")
+      ) {
+        setError(
+          "Please complete your guide profile setup in the Guide Profile tab"
+        );
+        setGuideProfileLoaded(false);
+        setGuideProfileExists(false);
+      } else if (
+        error.message?.includes("404") ||
+        error.message?.includes("Resource not found")
+      ) {
+        setGuideProfileLoaded(false);
+        setGuideProfileExists(false);
+        setError(""); // Clear error if it's just "not found"
+      } else {
+        setError("Failed to load guide profile");
+      }
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, user?.role]);
 
   useEffect(() => {
     if (user) {
@@ -103,9 +145,12 @@ function ProfileContent() {
         languages: user.languages || [],
       });
 
-      // Load guide profile if user is a guide
+      // Only load guide profile if user is actually a guide
       if (user.role === "guide") {
         loadGuideProfile();
+      } else {
+        setGuideProfileLoaded(false);
+        setGuideProfileExists(false);
       }
     }
   }, [user, loadGuideProfile]);
@@ -125,6 +170,7 @@ function ProfileContent() {
   // Force reload guide profile data
   const reloadGuideProfile = async () => {
     setGuideProfileLoaded(false);
+    setGuideProfileExists(false);
     await loadGuideProfile();
   };
 
@@ -235,7 +281,7 @@ function ProfileContent() {
     }).length;
 
     // Guide-specific fields - only count if user is guide AND has guide data
-    if (user?.role === "guide" && guideProfileLoaded) {
+    if (user?.role === "guide" && guideProfileLoaded && guideProfileExists) {
       const guideFields = [
         { value: guideData.hourlyRate > 0, weight: 1 },
         { value: guideData.experience > 0, weight: 1 },
@@ -261,7 +307,13 @@ function ProfileContent() {
 
   // IMPROVED: Guide Profile Completion Calculation
   const calculateGuideProfileCompletion = () => {
-    if (!guideData || user?.role !== "guide" || !guideProfileLoaded) return 0;
+    if (
+      !guideData ||
+      user?.role !== "guide" ||
+      !guideProfileLoaded ||
+      !guideProfileExists
+    )
+      return 0;
 
     const guideFields = [
       { value: guideData.hourlyRate > 0, weight: 1 },
@@ -333,11 +385,6 @@ function ProfileContent() {
       console.log("=== DEBUG: START GUIDE PROFILE SUBMIT ===");
       console.log("Current guideData state:", guideData);
 
-      // First, check if we have an existing profile
-      console.log("🔍 Checking for existing profile...");
-      const existingProfile = await api.getGuideProfile();
-      console.log("Existing profile check:", existingProfile);
-
       const guideSaveData = {
         hourlyRate: guideData.hourlyRate,
         experience: guideData.experience,
@@ -353,7 +400,7 @@ function ProfileContent() {
       console.log("📤 Data being sent to backend:", guideSaveData);
 
       let data;
-      if (existingProfile.success && !existingProfile.data) {
+      if (!guideProfileExists) {
         // No profile exists - CREATE a new one
         console.log("🆕 CALLING: api.createGuideProfile()");
         data = await api.createGuideProfile(guideSaveData);
@@ -368,6 +415,7 @@ function ProfileContent() {
       if (data.success) {
         setSuccess("Guide profile saved successfully!");
         console.log("🎉 Profile saved successfully, reloading...");
+        setGuideProfileExists(true);
         await reloadGuideProfile();
         setTimeout(() => setSuccess(""), 3000);
       } else {
@@ -779,11 +827,45 @@ function ProfileContent() {
               </div>
             ) : (
               <>
+                {/* Guide Profile Status */}
+                {!guideProfileExists && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <svg
+                          className="h-8 w-8 text-blue-400"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                      </div>
+                      <div className="ml-4">
+                        <h3 className="text-lg font-medium text-blue-800">
+                          Create Your Guide Profile
+                        </h3>
+                        <p className="text-blue-700 mt-1">
+                          Complete your guide profile to start accepting
+                          bookings from travelers.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Guide Profile Form */}
                 <div className="bg-white shadow rounded-lg">
                   <div className="px-6 py-6">
                     <h3 className="text-lg font-medium text-gray-900 mb-6">
-                      Guide Profile Settings
+                      {guideProfileExists
+                        ? "Update Guide Profile"
+                        : "Create Guide Profile"}
                     </h3>
 
                     <form onSubmit={handleGuideProfileSubmit}>
@@ -1198,8 +1280,12 @@ function ProfileContent() {
                           className="bg-indigo-600 border border-transparent rounded-md shadow-sm py-2 px-4 inline-flex justify-center text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {saving
-                            ? "Saving Guide Profile..."
-                            : "Save Guide Profile"}
+                            ? guideProfileExists
+                              ? "Updating Guide Profile..."
+                              : "Creating Guide Profile..."
+                            : guideProfileExists
+                              ? "Update Guide Profile"
+                              : "Create Guide Profile"}
                         </button>
                       </div>
                     </form>

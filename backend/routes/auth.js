@@ -101,10 +101,36 @@ router.post(
 
 router.put("/resetpassword", resetPassword);
 router.get("/me", protect, getMe);
-router.get("/verify-token", protect, verifyToken); // ✅ FIXED: Correct path and added protect
+router.get("/verify-token", verifyToken);
 router.get("/logout", logout);
 router.put("/updatedetails", protect, updateDetails);
 router.put("/updatepassword", protect, updatePassword);
 router.delete("/deleteAvatar", protect, deleteAvatar);
+
+router.all("/register", (req, res) => {
+  if (req.method !== "POST") {
+    return res.status(405).json({
+      success: false,
+      message: `Method ${req.method} not allowed. Use POST.`,
+    });
+  }
+  res.status(404).json({
+    success: false,
+    message: "Route not found",
+  });
+});
+
+router.all("/login", (req, res) => {
+  if (req.method !== "POST") {
+    return res.status(405).json({
+      success: false,
+      message: `Method ${req.method} not allowed. Use POST.`,
+    });
+  }
+  res.status(404).json({
+    success: false,
+    message: "Route not found",
+  });
+});
 
 module.exports = router;

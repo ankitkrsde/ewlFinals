@@ -55,24 +55,87 @@ const sendTokenResponse = (user, statusCode, res) => {
 // @desc    Verify token validity
 // @route   GET /api/auth/verify-token
 // @access  Private
-exports.verifyToken = async (req, res, next) => {
+exports.verifyToken = async (req, res) => {
   try {
-    // If we reach here, the protect middleware has already validated the token
-    res.status(200).json({
-      success: true,
-      data: {
-        user: {
-          id: req.user._id,
-          name: req.user.name,
-          email: req.user.email,
-          role: req.user.role,
-          avatar: req.user.avatar,
+    let token;
+
+    // Get token from header
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer")
+    ) {
+      token = req.headers.authorization.split(" ")[1];
+    }
+
+    // If no token provided
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "No token provided",
+      });
+    }
+
+    try {
+      // Verify token manually
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log("🔐 Token decoded:", { id: decoded.id, iat: decoded.iat });
+
+      // Get user from database
+      const user = await User.findById(decoded.id).select("-password");
+
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: "User not found",
+        });
+      }
+
+      // Return user data
+      res.status(200).json({
+        success: true,
+        data: {
+          user: {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            avatar: user.avatar,
+            phone: user.phone,
+            location: user.location,
+            languages: user.languages,
+            bio: user.bio,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+          },
+          valid: true,
         },
-        valid: true,
-      },
-    });
+      });
+    } catch (jwtError) {
+      console.log("❌ JWT verification failed:", jwtError.message);
+
+      if (jwtError.name === "TokenExpiredError") {
+        return res.status(401).json({
+          success: false,
+          message: "Token expired",
+        });
+      } else if (jwtError.name === "JsonWebTokenError") {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid token",
+        });
+      } else {
+        return res.status(401).json({
+          success: false,
+          message: "Token verification failed",
+        });
+      }
+    }
   } catch (error) {
-    next(error);
+    console.error("💥 Verify token error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error during token verification",
+    });
   }
 };
 
