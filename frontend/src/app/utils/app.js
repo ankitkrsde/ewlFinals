@@ -25,7 +25,7 @@ class API {
     console.log("🚀 API Base URL:", this.baseURL); // Debug log
 
     // Add request timeout
-    this.timeout = 30000; // 30 seconds
+    this.timeout = 60000; // 60 seconds
   }
 
   async request(endpoint, options = {}) {
